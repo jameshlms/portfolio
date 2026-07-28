@@ -2,7 +2,6 @@ FROM --platform=linux/arm64 python:3.13-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tar \
     procps \
-    libe2p2 \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
     
