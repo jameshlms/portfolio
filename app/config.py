@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     base_url: str = "https://jameshlms.com"
+    port: int = 3000
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
