@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}James Holmes Portfolio{% endblock %}</title>
+    <meta
+            name="description"
+            content="{% block description %}Data scientist / ML engineer portfolio{% endblock %}"
+    />
+
+    <link rel="canonical" href="{{ base_url }}{{ request.url.path }}" />
+    <link rel="icon" href="{{ url_for('static', path='favicon.ico') }}" />
+    <link
+            rel="stylesheet"
+            href="{{ url_for('static', path='css/style.css') }}"
+    />
+
+    <script
+            src="https://cdn.jsdelivr.net/npm/htmx.org@4.0.0-beta6/dist/htmx.min.js"
+            integrity="sha384-6lyVbhrs13b9z7mLOpt/N6R76rtkEBWgCjAXRs/DSWyi2AMnQSs10ijWk+PI8n7W"
+            crossorigin="anonymous"
+    ></script>
+
+    {% block head %}{% endblock %}
+  </head>
+  <body hx-boost="false">
+    {% include "components/_nav.html" %}
+
+    <main id="main-content">{% block content %}{% endblock %}</main>
+
+    {% include "components/_footer.html" %}
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

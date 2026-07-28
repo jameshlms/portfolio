@@ -1,0 +1,16 @@
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.venv
+*.pyc
+.env
+app/ml/models/*.onnx
