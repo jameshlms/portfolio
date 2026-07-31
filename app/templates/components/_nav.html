@@ -1,7 +1,15 @@
 <nav>
-  <a href="/">James Holmes</a>
+  <a href="/">
+    <img
+      src="{{ url_for('static', path='favicon.svg') }}"
+      alt="Personal Brand Logo"
+      width="50"
+      height="50"
+    />
+  </a>
   <ul>
     <li><a href="/about">About</a></li>
+    <li><a href="/projects">Projects</a></li>
     <li><a href="/blog">Blog</a></li>
     <li><a href="/contact">Contact</a></li>
   </ul>
