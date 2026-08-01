@@ -2,6 +2,10 @@
     box-sizing: border-box;
 }
 
+:root {
+    --primary: #920e0e;
+}
+
 html {
     height: 100%;
 }
@@ -30,8 +34,15 @@ main {
 
 }
 
+header, footer {
+    color: white;
+    padding: 1.0rem;
+    background-color: var(--primary);
+    display: flex;
+    align-items: center;
+}
+
 footer {
-    background-color: darkseagreen;
     height: 3rem
 }
 
@@ -39,8 +50,8 @@ nav {
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1.0rem;
-    background-color: darkseagreen;
+    height: 3rem
+
 }
 
 nav ul {
@@ -49,6 +60,11 @@ nav ul {
     margin: 0;
     padding: 0;
     gap: 1rem;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
 }
 
 .code-block {
