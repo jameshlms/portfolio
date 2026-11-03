@@ -9,7 +9,6 @@ from app.config import settings
 from app.services.schema_org import (
     BreadcrumbList,
     CreativeWork,
-    Graph,
     ListItem,
     Node,
     PageType,
@@ -17,6 +16,7 @@ from app.services.schema_org import (
     Ref,
     WebPage,
     WebSite,
+    json_ld_document,
 )
 
 TITLE_SEPARATOR = " · "
@@ -105,7 +105,7 @@ class SEOContext:
 
     @property
     def json_ld(self) -> dict[str, Any]:
-        return Graph(graph=self.structured_data).to_json_ld()
+        return json_ld_document(self.structured_data)
 
 
 def _website_node() -> WebSite:
