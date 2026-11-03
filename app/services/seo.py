@@ -16,6 +16,7 @@ from app.services.schema_org import (
     Ref,
     WebPage,
     WebSite,
+    json_ld_document,
 )
 
 TITLE_SEPARATOR = " · "
@@ -104,10 +105,7 @@ class SEOContext:
 
     @property
     def json_ld(self) -> dict[str, Any]:
-        return {
-            "@context": "https://schema.org",
-            "@graph": [node.to_json_ld() for node in self.structured_data],
-        }
+        return json_ld_document(self.structured_data)
 
 
 def _website_node() -> WebSite:
