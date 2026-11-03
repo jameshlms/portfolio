@@ -6,6 +6,17 @@ from typing import Any
 
 from app import paths
 from app.config import settings
+from app.services.schema_org import (
+    BreadcrumbList,
+    CreativeWork,
+    ListItem,
+    Node,
+    PageType,
+    Person,
+    Ref,
+    WebPage,
+    WebSite,
+)
 
 TITLE_SEPARATOR = " · "
 LANGUAGE = "en"
@@ -33,7 +44,7 @@ _PROFILE_IMAGE = f"{paths.Internal.STATIC}/images/pfp.jpg"
 class PageMeta:
     title: str
     description: str
-    schema_type: str = "WebPage"  # schema.org @type of the page node
+    schema_type: PageType = "WebPage"  # schema.org @type of the page node
     noindex: bool = False
 
 
@@ -78,7 +89,7 @@ class SEOContext:
     date_modified: datetime | None = None
     author_url: str | None = None  # article:author
     tags: tuple[str, ...] = ()  # article:tag
-    structured_data: tuple[dict[str, Any], ...] = ()  # schema.org nodes for one @graph
+    structured_data: tuple[Node, ...] = ()  # schema.org nodes for one @graph
 
     @property
     def canonical(self) -> str:
@@ -93,74 +104,66 @@ class SEOContext:
 
     @property
     def json_ld(self) -> dict[str, Any]:
-        return {"@context": "https://schema.org", "@graph": list(self.structured_data)}
+        return {
+            "@context": "https://schema.org",
+            "@graph": [node.to_json_ld() for node in self.structured_data],
+        }
 
 
-def _website_node() -> dict[str, Any]:
-    return {
-        "@type": "WebSite",
-        "@id": WEBSITE_ID,
-        "url": absolute_url(paths.Page.HOME),
-        "name": settings.site_name,
-        "inLanguage": LANGUAGE,
-        "publisher": {"@id": PERSON_ID},
-    }
+def _website_node() -> WebSite:
+    return WebSite(
+        id=WEBSITE_ID,
+        url=absolute_url(paths.Page.HOME),
+        name=settings.site_name,
+        in_language=LANGUAGE,
+        publisher=Ref(id=PERSON_ID),
+    )
 
 
-def _person_node() -> dict[str, Any]:
-    return {
-        "@type": "Person",
-        "@id": PERSON_ID,
-        "name": settings.site_name,
-        "url": absolute_url(paths.Page.HOME),
-        "image": absolute_url(_PROFILE_IMAGE),
-        "sameAs": [settings.github_url, settings.linkedin_url],
-    }
+def _person_node() -> Person:
+    return Person(
+        id=PERSON_ID,
+        name=settings.site_name,
+        url=absolute_url(paths.Page.HOME),
+        image=absolute_url(_PROFILE_IMAGE),
+        same_as=(settings.github_url, settings.linkedin_url),
+    )
 
 
-def _webpage_node(meta: PageMeta, path: str) -> dict[str, Any]:
+def _webpage_node(meta: PageMeta, path: str) -> WebPage:
     url = absolute_url(path)
-    node: dict[str, Any] = {
-        "@type": meta.schema_type,
-        "@id": f"{url}#webpage",
-        "url": url,
-        "name": meta.title,
-        "description": meta.description,
-        "inLanguage": LANGUAGE,
-        "isPartOf": {"@id": WEBSITE_ID},
-    }
-    if meta.schema_type == "ProfilePage":
-        node["mainEntity"] = {"@id": PERSON_ID}
-    return node
+    return WebPage(
+        type=meta.schema_type,
+        id=f"{url}#webpage",
+        url=url,
+        name=meta.title,
+        description=meta.description,
+        in_language=LANGUAGE,
+        is_part_of=Ref(id=WEBSITE_ID),
+        main_entity=Ref(id=PERSON_ID) if meta.schema_type == "ProfilePage" else None,
+    )
 
 
-def _breadcrumb_node(crumbs: Iterable[tuple[str, str]]) -> dict[str, Any]:
-    return {
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-            {
-                "@type": "ListItem",
-                "position": position,
-                "name": name,
-                "item": absolute_url(path),
-            }
+def _breadcrumb_node(crumbs: Iterable[tuple[str, str]]) -> BreadcrumbList:
+    return BreadcrumbList(
+        item_list_element=tuple(
+            ListItem(position=position, name=name, item=absolute_url(path))
             for position, (name, path) in enumerate(crumbs, start=1)
-        ],
-    }
+        )
+    )
 
 
-def _project_node(project: Any, path: str) -> dict[str, Any]:
+def _project_node(project: Any, path: str) -> CreativeWork:
     url = absolute_url(path)
-    return {
-        "@type": "CreativeWork",
-        "@id": f"{url}#project",
-        "url": url,
-        "name": project.title,
-        "description": project.summary,
-        "author": {"@id": PERSON_ID},
-        "datePublished": project.published_at.isoformat(),
-        "dateModified": project.updated_at.isoformat(),
-    }
+    return CreativeWork(
+        id=f"{url}#project",
+        url=url,
+        name=project.title,
+        description=project.summary,
+        author=Ref(id=PERSON_ID),
+        date_published=project.published_at,
+        date_modified=project.updated_at,
+    )
 
 
 def for_page(page: paths.Page) -> SEOContext:

@@ -102,7 +102,7 @@ def test_page_structured_data_is_one_linked_graph() -> None:
 
 
 def test_home_has_no_breadcrumb() -> None:
-    types = {node["@type"] for node in for_page(paths.Page.HOME).structured_data}
+    types = {node.type for node in for_page(paths.Page.HOME).structured_data}
 
     assert "BreadcrumbList" not in types
 
