@@ -2,7 +2,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException
 
-from app.services import seo
+from app.services.seo.head import for_error_page
 from app.templates import make_templates
 
 _templates = make_templates()
@@ -23,14 +23,14 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> Respon
 
     if exc.status_code == 404:
         template = "errors/404.html"
-        page = seo.for_error_page(
+        page = for_error_page(
             "Page not found",
             "The page you're looking for doesn't exist.",
             request.url.path,
         )
     else:
         template = "errors/500.html"
-        page = seo.for_error_page(
+        page = for_error_page(
             "Something went wrong", "An unexpected error occurred.", request.url.path
         )
 

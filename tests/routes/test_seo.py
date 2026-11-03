@@ -9,7 +9,8 @@ from fastapi.testclient import TestClient
 from app.config import settings
 from app.paths import Page
 from app.routes import seo
-from app.services.seo import PAGE_META, SitemapUrl
+from app.services.seo.page_meta import PAGE_META
+from app.services.seo.sitemap import SitemapUrl
 
 _NS = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 

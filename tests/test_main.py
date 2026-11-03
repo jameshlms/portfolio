@@ -9,7 +9,8 @@ from fastapi.testclient import TestClient
 
 from app.config import settings
 from app.main import app
-from app.services.seo import PAGE_META, for_page
+from app.services.seo.head import for_page
+from app.services.seo.page_meta import PAGE_META
 
 
 @pytest.fixture

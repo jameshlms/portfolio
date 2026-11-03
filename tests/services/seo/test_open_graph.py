@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from app.services.open_graph import OpenGraph, OpenGraphArticle
+from app.services.seo.open_graph import OpenGraph, OpenGraphArticle
 
 
 def test_fields_serialize_to_namespaced_properties_in_order() -> None:
