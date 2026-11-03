@@ -11,12 +11,16 @@ _DatabaseUrl = Annotated[
 
 _http = TypeAdapter(HttpUrl)
 
+
 def _clean_url(v: object) -> str:
     s = str(v).strip()
     if "://" not in s:
         s = f"https://{s}"
     u = urlsplit(str(_http.validate_python(s)))
-    return urlunsplit((u.scheme, u.netloc, u.path.rstrip("/"), u.query, ""))  # drop fragment, trailing slash
+    return urlunsplit(
+        (u.scheme, u.netloc, u.path.rstrip("/"), u.query, "")
+    )  # drop fragment, trailing slash
+
 
 WebUrl = Annotated[str, BeforeValidator(_clean_url)]
 

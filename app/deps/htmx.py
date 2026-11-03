@@ -15,4 +15,5 @@ def _is_htmx(
         and hx_history_restore_request != "true"
     )
 
+
 IsHtmx = Annotated[bool, Depends(_is_htmx)]

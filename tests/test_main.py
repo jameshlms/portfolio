@@ -32,7 +32,9 @@ def test_contact_links_to_email_and_linkedin(client: TestClient) -> None:
     assert settings.linkedin_url in html
 
 
-@pytest.mark.parametrize("path", ["/robots.txt", "/sitemap.xml", "/llms.txt", "/static/css/style.css"])
+@pytest.mark.parametrize(
+    "path", ["/robots.txt", "/sitemap.xml", "/llms.txt", "/static/css/style.css"]
+)
 def test_root_files_and_static_are_served(client: TestClient, path: str) -> None:
     assert client.get(path).status_code == 200
 

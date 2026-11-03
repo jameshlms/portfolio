@@ -26,5 +26,8 @@ async def contact(request: Request):
     return _templates.TemplateResponse(
         request,
         "pages/contact.html",
-        {"contact_email": settings.contact_email, "linkedin_url": settings.linkedin_url},
+        {
+            "contact_email": settings.contact_email,
+            "linkedin_url": settings.linkedin_url,
+        },
     )
