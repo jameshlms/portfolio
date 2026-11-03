@@ -1,11 +1,11 @@
 from fastapi import APIRouter
 
-from app.paths import Reserved
+from app.paths import Internal
 
 router = APIRouter(include_in_schema=False)
 
 
-@router.get(Reserved.HEALTH)
+@router.get(Internal.HEALTH)
 async def health() -> dict[str, str]:
     """Liveness for Railway's deploy healthcheck: answers once the app can serve requests."""
     return {"status": "ok"}
