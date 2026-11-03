@@ -9,36 +9,11 @@
             <meta name="robots" content="noindex" />
         {% else %}
             <link rel="canonical" href="{{ seo.canonical }}" />
-            <meta property="og:url" content="{{ seo.canonical }}" />
         {% endif %}
-        <meta property="og:type" content="{{ seo.og_type }}" />
-        <meta property="og:title" content="{{ seo.title }}" />
-        <meta property="og:description" content="{{ seo.description }}" />
-        <meta property="og:site_name" content="{{ site_name }}" />
-        <meta property="og:locale" content="{{ seo.og_locale }}" />
-        {% if seo.og_image %}
-            <meta property="og:image" content="{{ seo.og_image }}" />
-            {% if seo.og_image_alt %}
-                <meta property="og:image:alt" content="{{ seo.og_image_alt }}" />
-            {% endif %}
-            <meta name="twitter:card" content="summary_large_image" />
-        {% else %}
-            <meta name="twitter:card" content="summary" />
-        {% endif %}
-        {% if seo.og_type == "article" %}
-            {% if seo.date_published %}
-                <meta property="article:published_time"
-                      content="{{ seo.date_published.isoformat() }}" />
-            {% endif %}
-            {% if seo.date_modified %}
-                <meta property="article:modified_time"
-                      content="{{ seo.date_modified.isoformat() }}" />
-            {% endif %}
-            {% if seo.author_url %}
-                <meta property="article:author" content="{{ seo.author_url }}" />
-            {% endif %}
-            {% for tag in seo.tags %}<meta property="article:tag" content="{{ tag }}" />{% endfor %}
-        {% endif %}
+        {% for property, content in seo.meta_properties %}
+            <meta property="{{ property }}" content="{{ content }}" />
+        {% endfor %}
+        <meta name="twitter:card" content="{{ seo.twitter_card }}" />
         {% if seo.structured_data %}
             <script type="application/ld+json">{{ seo.json_ld | tojson }}</script>
         {% endif %}
