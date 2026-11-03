@@ -1,0 +1,17 @@
+{% extends "base.html" %} {% block title %}James Holmes Portfolio{% endblock %}
+{% block description %}Portfolio of James Holmes - data science, machine
+    learning, and full-stack projects.{% endblock %} {% block content %}
+    <section class="hero">
+        <h1>Hello, I'm James!</h1>
+        <img src="{{ url_for('static', path='images/pfp.jpg') }}"
+             alt="Profile picture of James Holmes"
+             width="160"
+             class="profile-picture" />
+        <div class="roles">
+            {% for role in roles %}
+                {% include "_role_card.html" %}
+            {% endfor %}
+        </div>
+        <p class="prose">Developing and exploring effective data storage and delivery solutions.</p>
+    </section>
+{% endblock %}

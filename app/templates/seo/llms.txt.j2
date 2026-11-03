@@ -1,0 +1,10 @@
+# {{ doc.title }}
+
+> {{ doc.summary }}
+{%- for section in doc.sections %}
+
+## {{ section.heading }}
+{% for link in section.links %}
+- [{{ link.title }}]({{ link.url }}){% if link.notes %}: {{ link.notes }}{% endif %}
+{%- endfor %}
+{%- endfor %}

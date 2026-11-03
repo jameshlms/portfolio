@@ -1,0 +1,6 @@
+User-agent: *
+{%- for path in disallow %}
+Disallow: {{ path }}
+{%- endfor %}
+
+Sitemap: {{ base_url }}{{ sitemap_path }}

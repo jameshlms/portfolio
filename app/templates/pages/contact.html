@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}James Holmes Portfolio{% endblock %}
+{% block description %}Portfolio of James Holmes - data science, machine learning, and full-stack projects.{% endblock %}
+{% block content %}
+    <section>
+        <h1>Contact</h1>
+        <p>Contact me by doing any of the following!</p>
+        <ul>
+            <li><a href="mailto:{{ contact_email }}">Sending an email</a></li>
+            <li><a href="{{ linkedin_url }}" target="_blank">Reaching out on LinkedIn</a></li>
+        </ul>
+    </section>
+{% endblock %}
