@@ -11,6 +11,7 @@ _CACHE_HEADERS = {"Cache-Control": "public, max-age=3600"}
 
 router = APIRouter(include_in_schema=False)
 
+
 @router.get(Reserved.SITEMAP)
 async def sitemap(request: Request):
     # Blog posts join via content.published_for_sitemap once /blog/{slug} has a route.
@@ -22,6 +23,7 @@ async def sitemap(request: Request):
         headers=_CACHE_HEADERS,
     )
 
+
 @router.get(Reserved.ROBOTS)
 async def robots(request: Request):
     return _templates.TemplateResponse(
@@ -31,6 +33,7 @@ async def robots(request: Request):
         media_type="text/plain",
         headers=_CACHE_HEADERS,
     )
+
 
 @router.get(Reserved.LLMS)
 async def llms(request: Request):

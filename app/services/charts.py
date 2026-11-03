@@ -4,6 +4,7 @@ from plotly.io import to_html
 
 _BASE_CONFIG = {"responsive": True, "displaylogo": False}
 
+
 def render_chart(
     fig: Figure,
     *,

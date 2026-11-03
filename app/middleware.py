@@ -50,8 +50,6 @@ class AdminAuthMiddleware:
         await self.app(scope, receive, send)
 
 
-
-
 # noinspection PyTypeChecker
 middleware: list[Middleware] = [
     Middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts),

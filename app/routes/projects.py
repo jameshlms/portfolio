@@ -15,8 +15,9 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 async def projects(request: Request, htmx: IsHtmx):
     return templates.TemplateResponse(
         request=request,
-        name="partials/project_grid.html" if htmx else "pages/project_list.html"
+        name="partials/project_grid.html" if htmx else "pages/project_list.html",
     )
+
 
 @router.get("/{slug}")
 async def project(request: Request, slug: str, htmx: IsHtmx):

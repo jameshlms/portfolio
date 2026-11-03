@@ -1,12 +1,12 @@
 <nav>
-    <a href="/">
+    <a href="{{ url_for('home') }}">
         <img src="{{ url_for('static', path='favicon.svg') }}"
              alt="Personal Brand Logo"
              width="50"
              height="50" />
     </a>
     <ul>
-        <li><a class="nav-tab" href="/about">About</a></li>
-        <li><a class="nav-tab" href="/contact">Contact</a></li>
+        <li><a class="nav-tab" href="{{ url_for('about') }}">About</a></li>
+        <li><a class="nav-tab" href="{{ url_for('contact') }}">Contact</a></li>
     </ul>
 </nav>

@@ -10,6 +10,7 @@ class Page(StrEnum):
     PROJECTS = "/projects"
     BLOG = "/blog"
 
+
 @unique
 class Reserved(StrEnum):
     ADMIN = "/admin"
@@ -19,6 +20,7 @@ class Reserved(StrEnum):
     LLMS = "/llms.txt"
     LLMS_FULL = "/llms-full.txt"
     HEALTH = "/healthz"
+
 
 def entity_path(page: Page, slug: str) -> str:
     return f"{page}/{slug}"

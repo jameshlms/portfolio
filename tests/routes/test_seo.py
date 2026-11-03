@@ -37,10 +37,15 @@ def test_sitemap_is_valid_cached_xml(client: TestClient) -> None:
 def test_sitemap_escapes_xml_special_characters(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    entry = SitemapEntry(f"{settings.base_url}/blog/hello?a=1&b=2", datetime(2026, 10, 1, 9, 0, tzinfo=UTC))
+    entry = SitemapEntry(
+        f"{settings.base_url}/blog/hello?a=1&b=2",
+        datetime(2026, 10, 1, 9, 0, tzinfo=UTC),
+    )
     monkeypatch.setattr(seo, "sitemap_entries", lambda: (entry,))
 
-    root = ElementTree.fromstring(client.get("/sitemap.xml").content)  # raises if "&" is unescaped
+    root = ElementTree.fromstring(
+        client.get("/sitemap.xml").content
+    )  # raises if "&" is unescaped
 
     url = root.find("sm:url", _NS)
     assert url is not None

@@ -47,7 +47,7 @@ def test_entities_follow_static_pages_with_lastmod_and_images() -> None:
         )
     ]
 
-    entries = sitemap_entries(posts, projects)[len(seo.STATIC_PAGES):]
+    entries = sitemap_entries(posts, projects)[len(seo.STATIC_PAGES) :]
 
     assert [e.loc for e in entries] == [
         f"{settings.base_url}/blog/first",
@@ -69,7 +69,9 @@ def test_llms_document_sections_and_absolute_urls() -> None:
     assert [s.heading for s in doc.sections] == ["Pages", "Blog", "Optional"]
 
     pages, blog, _ = doc.sections
-    assert f"{settings.base_url}/" not in {link.url for link in pages.links}  # home is the H1
+    assert f"{settings.base_url}/" not in {
+        link.url for link in pages.links
+    }  # home is the H1
     assert blog.links[0].url == f"{settings.base_url}/blog/first"
     assert blog.links[0].notes == "Why I built this."
 
