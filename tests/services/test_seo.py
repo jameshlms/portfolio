@@ -143,3 +143,41 @@ def test_llms_document_excludes_noindex_pages(monkeypatch: pytest.MonkeyPatch) -
     titles = {link.title for link in llms_document([]).sections[0].links}
 
     assert seo.PAGE_META[paths.Page.CONTACT].title not in titles
+
+
+def test_open_graph_derives_from_page_facts() -> None:
+    about = for_page(paths.Page.ABOUT)
+    props = dict(about.meta_properties)
+
+    assert props["og:type"] == "website"
+    assert props["og:title"] == "About"
+    assert props["og:url"] == about.canonical
+    assert props["og:site_name"] == settings.site_name
+    assert about.twitter_card == "summary"
+
+
+def test_noindex_pages_have_no_og_url() -> None:
+    props = dict(for_error_page("Page not found", "Gone.", "/nope").meta_properties)
+
+    assert "og:url" not in props
+
+
+def test_social_image_sets_og_image_and_large_card() -> None:
+    page = replace(
+        for_page(paths.Page.ABOUT), image=seo.SocialImage("https://x/a.png", "Alt")
+    )
+
+    props = dict(page.meta_properties)
+    assert props["og:image"] == "https://x/a.png"
+    assert props["og:image:alt"] == "Alt"
+    assert page.twitter_card == "summary_large_image"
+
+
+def test_article_switches_og_type_and_appends_article_properties() -> None:
+    page = replace(
+        for_page(paths.Page.ABOUT),
+        article=seo.OpenGraphArticle(tags=("python",)),
+    )
+
+    assert dict(page.meta_properties)["og:type"] == "article"
+    assert page.meta_properties[-1] == ("article:tag", "python")

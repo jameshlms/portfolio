@@ -4,11 +4,14 @@ import pytest
 from pydantic import ValidationError
 
 from app.services.schema_org import (
+    BreadcrumbList,
     CreativeWork,
+    JsonLdDocument,
+    ListItem,
     Person,
     Ref,
     WebPage,
-    json_ld_document,
+    WebSite,
 )
 
 
@@ -62,21 +65,65 @@ def test_page_type_is_restricted_to_known_page_types() -> None:
         )
 
 
-def test_document_wraps_each_node_in_one_graph() -> None:
-    person = Person(id="https://x/#person", name="J", url="https://x/")
-    page = WebPage(
-        url="u",
-        name="n",
-        description="d",
-        in_language="en",
-        is_part_of=Ref(id="s"),
-        main_entity=Ref(id="https://x/#person"),
+def _document() -> JsonLdDocument:
+    person = Person(id="https://x/#person", name="J", url="https://x/", same_as=("a",))
+    site = WebSite(
+        id="https://x/#website", name="J", url="https://x/", publisher=person.ref()
     )
+    page = WebPage(
+        type="ProfilePage",
+        url="https://x/about",
+        name="About",
+        description="d",
+        is_part_of=site.ref(),
+        main_entity=person.ref(),
+        date_modified=datetime(2026, 10, 1, 9, 0, tzinfo=UTC),
+    )
+    crumbs = BreadcrumbList(
+        item_list_element=(ListItem(position=1, name="Home", item="https://x/"),)
+    )
+    return JsonLdDocument(graph=(site, person, page, crumbs))
 
-    assert json_ld_document((person, page)) == {
+
+def test_document_wraps_each_node_in_one_graph() -> None:
+    doc = _document()
+
+    assert doc.to_json_ld() == {
         "@context": "https://schema.org",
-        "@graph": [person.to_json_ld(), page.to_json_ld()],
+        "@graph": [node.to_json_ld() for node in doc.graph],
     }
+
+
+def test_document_round_trips_through_json_ld() -> None:
+    doc = _document()
+
+    parsed = JsonLdDocument.from_json_ld(doc.to_json_ld())
+
+    assert parsed == doc
+    # "@type" picks the class: ProfilePage parses as a WebPage, not a generic node.
+    assert [type(node).__name__ for node in parsed.graph] == [
+        "WebSite",
+        "Person",
+        "WebPage",
+        "BreadcrumbList",
+    ]
+    assert parsed.graph[2].type == "ProfilePage"
+
+
+def test_unknown_graph_node_type_is_rejected() -> None:
+    with pytest.raises(ValidationError):
+        JsonLdDocument.from_json_ld(
+            {"@context": "https://schema.org", "@graph": [{"@type": "Robot"}]}
+        )
+
+
+def test_ref_points_at_the_node_id() -> None:
+    assert Person(id="https://x/#p", name="J", url="u").ref() == Ref(id="https://x/#p")
+
+
+def test_ref_needs_an_id() -> None:
+    with pytest.raises(ValueError, match="no @id"):
+        Person(name="J", url="u").ref()
 
 
 def test_unset_same_as_is_omitted() -> None:

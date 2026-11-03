@@ -2,21 +2,22 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from itertools import chain
-from typing import Any
+from typing import Any, Literal
 
 from app import paths
 from app.config import settings
+from app.services.open_graph import MetaProperty, OpenGraph, OpenGraphArticle
 from app.services.schema_org import (
     BreadcrumbList,
     CreativeWork,
+    GraphNode,
+    JsonLdDocument,
     ListItem,
-    Node,
     PageType,
     Person,
     Ref,
     WebPage,
     WebSite,
-    json_ld_document,
 )
 
 TITLE_SEPARATOR = " · "
@@ -71,26 +72,36 @@ class PublishedPage:
     images: tuple[str, ...] = ()  # site-relative paths or absolute URLs
 
 
+@dataclass(frozen=True)
+class Crumb:
+    """One step of a breadcrumb trail."""
+
+    name: str
+    path: str
+
+
+@dataclass(frozen=True)
+class SocialImage:
+    """The preview image shown when a page is shared."""
+
+    url: str  # absolute
+    alt: str
+
+
 # --- <head> metadata ---------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class SEOContext:
-    """Everything base.html renders into <head>: title, meta, Open Graph, JSON-LD."""
+    """Facts about a page; base.html renders <head> from what they derive."""
 
     title: str  # page title alone; also og:title
     description: str
     path: str  # canonical path, no query string
-    og_image: str | None = None
-    og_image_alt: str | None = None
-    og_type: str = "website"
-    og_locale: str = "en_US"
     noindex: bool = False
-    date_published: datetime | None = None
-    date_modified: datetime | None = None
-    author_url: str | None = None  # article:author
-    tags: tuple[str, ...] = ()  # article:tag
-    structured_data: tuple[Node, ...] = ()  # schema.org nodes for one @graph
+    image: SocialImage | None = None
+    article: OpenGraphArticle | None = None  # set for long-form pages (og:type=article)
+    structured_data: tuple[GraphNode, ...] = ()  # schema.org nodes for one @graph
 
     @property
     def canonical(self) -> str:
@@ -104,8 +115,30 @@ class SEOContext:
         return f"{self.title}{TITLE_SEPARATOR}{settings.site_name}"
 
     @property
+    def open_graph(self) -> OpenGraph:
+        return OpenGraph(
+            type="article" if self.article else "website",
+            title=self.title,
+            description=self.description,
+            url=None if self.noindex else self.canonical,
+            site_name=settings.site_name,
+            image=self.image.url if self.image else None,
+            image_alt=self.image.alt if self.image else None,
+        )
+
+    @property
+    def meta_properties(self) -> tuple[MetaProperty, ...]:
+        """Every <meta property="..."> tag: Open Graph, then article:* if any."""
+        article = self.article.meta_properties() if self.article else ()
+        return (*self.open_graph.meta_properties(), *article)
+
+    @property
+    def twitter_card(self) -> Literal["summary", "summary_large_image"]:
+        return "summary_large_image" if self.image else "summary"
+
+    @property
     def json_ld(self) -> dict[str, Any]:
-        return json_ld_document(self.structured_data)
+        return JsonLdDocument(graph=self.structured_data).to_json_ld()
 
 
 def _website_node() -> WebSite:
@@ -142,11 +175,11 @@ def _webpage_node(meta: PageMeta, path: str) -> WebPage:
     )
 
 
-def _breadcrumb_node(crumbs: Iterable[tuple[str, str]]) -> BreadcrumbList:
+def _breadcrumb_node(crumbs: Iterable[Crumb]) -> BreadcrumbList:
     return BreadcrumbList(
         item_list_element=tuple(
-            ListItem(position=position, name=name, item=absolute_url(path))
-            for position, (name, path) in enumerate(crumbs, start=1)
+            ListItem(position=position, name=crumb.name, item=absolute_url(crumb.path))
+            for position, crumb in enumerate(crumbs, start=1)
         )
     )
 
@@ -164,12 +197,19 @@ def _project_node(project: Any, path: str) -> CreativeWork:
     )
 
 
+_HOME_CRUMB = Crumb("Home", paths.Page.HOME)
+
+
 def for_page(page: paths.Page) -> SEOContext:
     meta = PAGE_META[page]
-    nodes = [_website_node(), _person_node(), _webpage_node(meta, page)]
+    nodes: list[GraphNode] = [
+        _website_node(),
+        _person_node(),
+        _webpage_node(meta, page),
+    ]
 
     if page != paths.Page.HOME:
-        nodes.append(_breadcrumb_node([("Home", paths.Page.HOME), (meta.title, page)]))
+        nodes.append(_breadcrumb_node([_HOME_CRUMB, Crumb(meta.title, page)]))
 
     return SEOContext(
         title=meta.title,
@@ -191,22 +231,24 @@ def for_project(project: Any) -> SEOContext:
         title=project.seo_title or project.title,
         description=project.summary,
         path=path,
-        og_type="article",  # long-form case study; use "website" if you prefer
-        og_image=project.cover.og_url if project.cover else None,
-        og_image_alt=project.cover.alt if project.cover else None,
-        date_published=project.published_at,
-        date_modified=project.updated_at,
-        author_url=absolute_url(paths.Page.ABOUT),
-        tags=tuple(t.name for t in project.tags),
+        image=SocialImage(project.cover.og_url, project.cover.alt)
+        if project.cover
+        else None,
+        article=OpenGraphArticle(  # long-form case study; drop for og:type=website
+            published_time=project.published_at,
+            modified_time=project.updated_at,
+            author=absolute_url(paths.Page.ABOUT),
+            tags=tuple(t.name for t in project.tags),
+        ),
         structured_data=(
             _website_node(),
             _person_node(),
             _project_node(project, path),
             _breadcrumb_node(
                 [
-                    ("Home", paths.Page.HOME),
-                    ("Projects", paths.Page.PROJECTS),
-                    (project.title, path),
+                    _HOME_CRUMB,
+                    Crumb("Projects", paths.Page.PROJECTS),
+                    Crumb(project.title, path),
                 ]
             ),
         ),
