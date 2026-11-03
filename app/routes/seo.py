@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Request
 
 from app.paths import Internal, RootFile
-from app.services.seo.llms import llms_document
-from app.services.seo.sitemap import sitemap_urls
+from app.services.seo import llms_document, sitemap_urls
 from app.templates import make_templates
 
 _templates = make_templates()

@@ -24,7 +24,7 @@ Be sure to use any linked documentation for up-to-date information.
 
 ## Architecture
 
-Flat layers, dependencies pointing inward: **routes → services → models/db**. Routes are thin HTTP adapters; services hold the logic; `app/services/seo/` is pure (no I/O) and is unit-tested without the app.
+Flat layers, dependencies pointing inward: **routes → services → models/db**. Routes are thin HTTP adapters; services hold the logic. The SEO services (`seo.py`, `schema_org.py`, `open_graph.py`) are pure (no I/O) and are unit-tested without the app.
 
 ```
 app/
@@ -46,15 +46,11 @@ app/
   services/
     content.py          # DB queries -> domain records (e.g. published_posts -> PublishedPage)
     charts.py           # Plotly figure -> embeddable HTML
-    seo/                # Search/crawler output, one module per concern
-      urls.py           # absolute_url, absolute_asset_url
-      page_meta.py      # PageMeta, PAGE_META (routed pages only), PublishedPage
-      schema_org.py     # schema.org node models; JsonLdDocument round-trips JSON-LD
-      open_graph.py     # OpenGraph / OpenGraphArticle -> <meta property> pairs
-      structured_data.py  # This site's nodes: WebSite, Person, WebPage, breadcrumbs; stable @ids
-      head.py           # SEOContext + for_page / for_error_page / for_project
-      sitemap.py        # SitemapUrl, sitemap_urls
-      llms.py           # LlmsDocument, llms_document (llmstxt.org)
+    seo.py              # PAGE_META (routed pages only), PublishedPage, SEOContext +
+                        #   for_page / for_error_page / for_project, this site's schema.org
+                        #   nodes, sitemap_urls, llms_document
+    schema_org.py       # schema.org node models; JsonLdDocument round-trips JSON-LD
+    open_graph.py       # OpenGraph / OpenGraphArticle -> <meta property> pairs
   templates/
     base.html           # Layout; renders <head> entirely from `seo`
     components/         # _header.html, _footer.html, _nav.html
@@ -63,7 +59,7 @@ app/
     seo/                # sitemap.xml.j2, robots.txt.j2, llms.txt.j2
   static/               # URL-mounted at /static (css/, js/, images/, favicon.svg)
 alembic/                # Migrations (env.py imports app.db.Base and app.models)
-tests/                  # Mirrors app/: routes/, services/seo/, plus full-app and boot tests
+tests/                  # Mirrors app/: routes/, services/, plus full-app and boot tests
 scripts/hooks/          # pre-commit: djlint-reformats staged HTML
 ```
 
@@ -71,7 +67,7 @@ scripts/hooks/          # pre-commit: djlint-reformats staged HTML
 
 - **Paths**: never hard-code a URL path in Python. Routes and links use the enums in `app/paths.py` (`Page` for HTML pages, `RootFile` for crawler files, `Internal` for admin/static/health); child pages use `item_path(collection, slug)`. Templates link with `url_for(...)` (djlint rule J018).
 - **SEO on every page**: each HTML response passes `seo` — `for_page(Page.X)` or, in error handlers, `for_error_page(...)`. `StrictUndefined` makes a page without it fail to render rather than ship generic metadata. Don't hand-write `<title>`, description, canonical, Open Graph or JSON-LD in page templates.
-- **PAGE_META is the single list of live pages**: it drives the sitemap, llms.txt and page metadata. Only add a page once its route is registered. SEO modules read it as `page_meta.PAGE_META` (module access) so tests can patch it in one place.
+- **PAGE_META is the single list of live pages**: it drives the sitemap, llms.txt and page metadata. Only add a page once its route is registered.
 - **Standard names**: schema.org and Open Graph models use snake_case fields that serialize to the standard's names (`type` → `@type`, `same_as` → `sameAs`, `image_alt` → `og:image:alt`). Models are frozen with `extra="forbid"` so misspelled properties fail at construction.
 - **HTMX branching**: routes that render either a full page or a fragment for the same URL take `htmx: IsHtmx` (from `app.deps`) and pick the template. Global middleware sets `Vary: HX-Request` so caches don't cross-serve variants.
 - **Errors**: `HTTPException` propagates to `app.exception_handlers.http_exception_handler`, which renders `errors/404.html` or `errors/500.html` with a `noindex` SEO context. Paths under `/api/` get JSON instead.

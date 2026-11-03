@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from app.services.seo.schema_org import (
+from app.services.schema_org import (
     BreadcrumbList,
     CreativeWork,
     JsonLdDocument,

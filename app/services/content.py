@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app import paths
 from app.models import BlogPost
-from app.services.seo.page_meta import PublishedPage
+from app.services.seo import PublishedPage
 
 
 async def get_project(db: AsyncSession, slug: str) -> ProjectRead | None:
