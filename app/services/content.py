@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app import paths
 from app.models import BlogPost
-from app.services.seo import EntityDetails, Listing
+from app.services.seo import PublishedPage
 
 
 async def get_project(db: AsyncSession, slug: str) -> ProjectRead | None:
@@ -38,25 +38,19 @@ async def list_projects(
     return [ProjectSummary.model_validate(r) for r in rows]
 
 
-async def published_for_sitemap(db: AsyncSession) -> tuple[EntityDetails, ...]:
+async def published_posts(db: AsyncSession) -> tuple[PublishedPage, ...]:
+    """Published blog posts, newest first; feeds the sitemap and llms.txt."""
     rows = await db.execute(
-        select(BlogPost.slug, BlogPost.updated_at)
+        select(BlogPost.slug, BlogPost.title, BlogPost.summary, BlogPost.updated_at)
         .where(BlogPost.published_at.is_not(None))
         .order_by(BlogPost.published_at.desc())
     )
     return tuple(
-        EntityDetails(paths.entity_path(paths.Page.BLOG, slug), updated_at)
-        for slug, updated_at in rows
-    )
-
-
-async def published_post_listings(db: AsyncSession) -> tuple[Listing, ...]:
-    rows = await db.execute(
-        select(BlogPost.slug, BlogPost.title, BlogPost.summary)
-        .where(BlogPost.published_at.is_not(None))
-        .order_by(BlogPost.published_at.desc())
-    )
-    return tuple(
-        Listing(paths.entity_path(paths.Page.BLOG, slug), title, summary)
-        for slug, title, summary in rows
+        PublishedPage(
+            path=paths.item_path(paths.Page.BLOG, slug),
+            title=title,
+            summary=summary,
+            last_modified=updated_at,
+        )
+        for slug, title, summary, updated_at in rows
     )

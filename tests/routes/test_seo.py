@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from app.config import settings
 from app.paths import Page
 from app.routes import seo
-from app.services.seo import STATIC_PAGES, SitemapEntry
+from app.services.seo import PAGE_META, SitemapUrl
 
 _NS = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
@@ -31,17 +31,17 @@ def test_sitemap_is_valid_cached_xml(client: TestClient) -> None:
 
     root = ElementTree.fromstring(response.content)
     locs = [el.text for el in root.findall("sm:url/sm:loc", _NS)]
-    assert locs == [f"{settings.base_url}{page}" for page in STATIC_PAGES]
+    assert locs == [f"{settings.base_url}{page}" for page in PAGE_META]
 
 
 def test_sitemap_escapes_xml_special_characters(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    entry = SitemapEntry(
+    entry = SitemapUrl(
         f"{settings.base_url}/blog/hello?a=1&b=2",
         datetime(2026, 10, 1, 9, 0, tzinfo=UTC),
     )
-    monkeypatch.setattr(seo, "sitemap_entries", lambda: (entry,))
+    monkeypatch.setattr(seo, "sitemap_urls", lambda: (entry,))
 
     root = ElementTree.fromstring(
         client.get("/sitemap.xml").content
@@ -74,14 +74,14 @@ def test_llms_txt_follows_spec_layout(client: TestClient) -> None:
     assert response.headers["cache-control"] == "public, max-age=3600"
 
     page_links = [
-        f"- [{sp.title}]({settings.base_url}{page}): {sp.description}"
-        for page, sp in STATIC_PAGES.items()
-        if not sp.noindex and page != Page.HOME
+        f"- [{meta.title}]({settings.base_url}{page}): {meta.description}"
+        for page, meta in PAGE_META.items()
+        if not meta.noindex and page != Page.HOME
     ]
     assert response.text.splitlines() == [
         f"# {settings.site_name}",
         "",
-        f"> {STATIC_PAGES[Page.HOME].description}",
+        f"> {PAGE_META[Page.HOME].description}",
         "",
         "## Pages",
         "",
