@@ -1,0 +1,9 @@
+#!/bin/sh
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep '\.html$')
+
+if [ -z "$staged" ]; then
+    exit 0
+fi
+
+echo "$staged" | xargs uv run djlint --reformat --quiet
+echo "$staged" | xargs git add

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Something went wrong · James Holmes{% endblock %}
+{% block description %}An unexpected error occurred.{% endblock %}
+{% block content %}
+    <section class="error">
+        <h1>{{ status_code }}</h1>
+        <p>Something went wrong on my end.</p>
+        <p><a href="/">Back to home</a></p>
+    </section>
+{% endblock %}
