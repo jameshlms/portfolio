@@ -1,16 +1,19 @@
 """schema.org nodes for JSON-LD structured data.
 
-Fields are snake_case in Python and serialize to schema.org's names: `type` -> "@type",
-`id` -> "@id", everything else camelCase (`same_as` -> "sameAs").
+Fields are snake_case in Python. JSON-LD keywords serialize with their "@" prefix
+(`type` -> "@type", `graph` -> "@graph"); schema.org properties serialize camelCase
+(`same_as` -> "sameAs").
 """
 
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, SerializeAsAny
 from pydantic.alias_generators import to_camel
 
-_KEYWORDS = {"type": "@type", "id": "@id"}
+# JSON-LD keywords: defined by the format itself, so "@"-prefixed to never collide with
+# a vocabulary property of the same name.
+_KEYWORDS = {"context": "@context", "graph": "@graph", "type": "@type", "id": "@id"}
 
 
 def _alias(field_name: str) -> str:
@@ -54,7 +57,7 @@ class Person(Node):
     name: str
     url: str
     image: str | None = None
-    same_as: tuple[str, ...] = ()
+    same_as: tuple[str, ...] | None = None
 
 
 type PageType = Literal["WebPage", "ProfilePage", "ContactPage", "CollectionPage"]
@@ -90,3 +93,12 @@ class CreativeWork(Node):
     author: Ref
     date_published: datetime | None = None
     date_modified: datetime | None = None
+
+
+class Graph(_SchemaOrgModel):
+    """A JSON-LD document: several nodes sharing one @context, linked by @id."""
+
+    context: Literal["https://schema.org"] = "https://schema.org"
+    # SerializeAsAny: serialize each node as its own class (Person, WebPage, ...);
+    # otherwise only the fields declared on Node would be written.
+    graph: tuple[SerializeAsAny[Node], ...]

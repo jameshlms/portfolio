@@ -9,6 +9,7 @@ from app.config import settings
 from app.services.schema_org import (
     BreadcrumbList,
     CreativeWork,
+    Graph,
     ListItem,
     Node,
     PageType,
@@ -104,10 +105,7 @@ class SEOContext:
 
     @property
     def json_ld(self) -> dict[str, Any]:
-        return {
-            "@context": "https://schema.org",
-            "@graph": [node.to_json_ld() for node in self.structured_data],
-        }
+        return Graph(graph=self.structured_data).to_json_ld()
 
 
 def _website_node() -> WebSite:
