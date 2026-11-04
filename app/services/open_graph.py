@@ -47,7 +47,11 @@ class OpenGraph(_MetaProperties):
     site_name: str
     locale: str = "en_US"
     image: str | None = None
-    image_alt: str | None = Field(default=None, alias="og:image:alt")
+    image_alt: str | None = Field(
+        default=None,
+        serialization_alias="og:image:alt",
+        validation_alias="og:image:alt",
+    )
 
 
 class OpenGraphArticle(_MetaProperties):
@@ -56,4 +60,6 @@ class OpenGraphArticle(_MetaProperties):
     published_time: datetime | None = None
     modified_time: datetime | None = None
     author: str | None = None  # URL of the author's profile page
-    tags: tuple[str, ...] = Field(default=(), alias="article:tag")
+    tags: tuple[str, ...] = Field(
+        default=(), serialization_alias="article:tag", validation_alias="article:tag"
+    )

@@ -5,10 +5,17 @@ Fields are snake_case in Python. JSON-LD keywords serialize with their "@" prefi
 (`same_as` -> "sameAs"). Parsing accepts the JSON-LD names, so documents round-trip:
 `JsonLdDocument.from_json_ld(doc.to_json_ld()) == doc`.
 
-The class hierarchy mirrors schema.org's (Thing -> CreativeWork -> WebPage, ...).
-Abstract bases keep `type: str`; only concrete leaves narrow it to a Literal, which is
-what the discriminated union in JsonLdDocument keys on.
+The class hierarchy mirrors schema.org's (Thing -> CreativeWork -> WebSite, ...), and
+each class narrows `type` to its own Literal, which is what the discriminated union in
+JsonLdDocument keys on. A property is declared where it becomes required, never
+redeclared narrower further down: type checkers reject a required field overriding an
+optional one.
 """
+
+# Narrowing `type` per subclass (str -> Literal["Person"], Literal["CreativeWork"] ->
+# Literal["WebSite"]) is the discriminator design, but pyright treats model fields as
+# mutable and reports any narrowed override. Pydantic validates the result at runtime.
+# pyright: reportIncompatibleVariableOverride=false
 
 from collections.abc import Mapping
 from datetime import datetime
@@ -54,17 +61,14 @@ class Ref(JsonLdModel):
     id: str
 
 
-# --- Abstract bases (schema.org's type hierarchy) -----------------------------
+# --- Node types (schema.org's type hierarchy) -----------------------------------
 
 
 class Thing(JsonLdModel):
-    """schema.org/Thing: properties every node can carry."""
+    """schema.org/Thing: properties any node may carry and no subclass requires."""
 
     type: str
     id: str | None = None
-    name: str | None = None
-    url: str | None = None
-    description: str | None = None
     image: str | None = None
     same_as: tuple[str, ...] | None = None
 
@@ -74,9 +78,19 @@ class Thing(JsonLdModel):
         return Ref(id=self.id)
 
 
-class BaseCreativeWork(Thing):
-    """schema.org/CreativeWork properties, shared by websites, pages and works."""
+class Person(Thing):
+    type: Literal["Person"] = "Person"
+    name: str
+    url: str
 
+
+class CreativeWork(Thing):
+    """schema.org/CreativeWork, and the parent of websites and pages."""
+
+    type: Literal["CreativeWork"] = "CreativeWork"
+    name: str
+    url: str
+    description: str | None = None
     in_language: str | None = None
     author: Ref | None = None
     publisher: Ref | None = None
@@ -86,35 +100,15 @@ class BaseCreativeWork(Thing):
     date_modified: datetime | None = None
 
 
-# --- Concrete node types -------------------------------------------------------
-
-
-class Person(Thing):
-    type: Literal["Person"] = "Person"
-    name: str
-    url: str
-
-
-class WebSite(BaseCreativeWork):
+class WebSite(CreativeWork):
     type: Literal["WebSite"] = "WebSite"
-    name: str
-    url: str
 
 
 type PageType = Literal["WebPage", "ProfilePage", "ContactPage", "CollectionPage"]
 
 
-class WebPage(BaseCreativeWork):
+class WebPage(CreativeWork):
     type: PageType = "WebPage"
-    name: str
-    url: str
-    description: str
-
-
-class CreativeWork(BaseCreativeWork):
-    type: Literal["CreativeWork"] = "CreativeWork"
-    name: str
-    url: str
 
 
 class ListItem(Thing):

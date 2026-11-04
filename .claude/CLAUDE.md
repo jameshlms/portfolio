@@ -18,9 +18,9 @@ Be sure to use any linked documentation for up-to-date information.
 - **Typed data**: Pydantic (settings, schema.org / Open Graph models); frozen dataclasses for internal records
 - **Package management**: `uv` (dependencies in `pyproject.toml` + `uv.lock`; dev tools in the `dev` group)
 - **Hosting**: Railway (Hobby plan), built from the root `Dockerfile`, custom domain (jameshlms.com)
-- **Linting/formatting**: `ruff` (Python), `djlint` (templates, `jinja` profile); type checking via `pyright` (not yet installed or in CI)
+- **Linting/formatting**: `ruff` (Python), `djlint` (templates, `jinja` profile); type checking via `pyright` (standard mode, configured in `pyproject.toml`)
 - **Testing**: `pytest` with FastAPI `TestClient`
-- **CI**: GitHub Actions (`.github/workflows/ci.yml`) runs ruff, djlint and pytest on PRs and pushes to `master`
+- **CI**: GitHub Actions (`.github/workflows/ci.yml`) runs ruff, djlint, pyright and pytest on PRs and pushes to `master`
 
 ## Architecture
 
@@ -74,6 +74,7 @@ scripts/hooks/          # pre-commit: djlint-reformats staged HTML
 - **Root-level crawler files** (sitemap.xml, robots.txt, llms.txt) are rendered from `templates/seo/*.j2` by `routes/seo.py`. `sitemap.xml.j2` turns on autoescape explicitly, because `.j2` files aren't autoescaped by default.
 - **Database is optional at runtime**: the engine is created on first use, so the app boots without `DATABASE_URL`. Routes get a session through the `DbSession` dependency; queries live in `services/content.py` and return domain dataclasses, not ORM rows.
 - **Unfinished features** can be merged: keep the router out of `main.py`, the page out of `PAGE_META`, and the link out of the nav until it works.
+- **Type-checking exceptions are file-level and explained**: `schema_org.py` turns off `reportIncompatibleVariableOverride` (each subclass narrows `type` for the discriminator); `content.py` turns off undefined-variable checks until the `Project*` model exists. Don't add new exceptions without a comment saying why.
 - **Immutability**: prefer frozen dataclasses / frozen Pydantic models and tuples for data passed between layers.
 
 ## Development
@@ -84,6 +85,7 @@ uv run fastapi dev app/main.py           # run locally with reload
 uv run pytest                            # tests
 uv run ruff check . && uv run ruff format --check .
 uv run djlint app/templates --lint && uv run djlint app/templates --check
+uv run pyright                           # type check
 git config core.hooksPath scripts/hooks  # enable the djlint pre-commit hook
 ```
 
@@ -98,9 +100,8 @@ Copy `.env.example` to `.env` for local settings; the app runs with it empty.
 
 ## Notes / Not Yet Built
 
-- **Blog and projects pages**: `routes/blog.py` and `routes/projects.py` aren't registered. `content.published_posts` is ready to feed the sitemap and llms.txt once `/blog/{slug}` has a route. Projects need a model and table first (`content.py` references undefined `Project*` names and carries a `noqa: F821` until then).
+- **Blog and projects pages**: `routes/blog.py` and `routes/projects.py` aren't registered. `content.published_posts` is ready to feed the sitemap and llms.txt once `/blog/{slug}` has a route. Projects need a model and table first (`content.py` references undefined `Project*` names and carries ruff/pyright exceptions until then).
 - **Admin**: GitHub OAuth settings, `AdminAuthMiddleware` and `admin.css` exist, but no admin routes or session middleware are registered.
 - **llms-full.txt**: `RootFile.LLMS_FULL` is reserved; no route yet.
 - **Contact form**: the contact page shows mailto + LinkedIn links only.
 - **JSON API**: none. Build only when a real consumer (RSS reader, CLI, mobile app) exists; the error handler already returns JSON under `/api/`.
-- **pyright**: named in the stack but not yet a dev dependency or CI step.
