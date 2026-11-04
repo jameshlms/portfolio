@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 import pytest
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 
 from app.services.schema_org import (
     BreadcrumbList,
@@ -10,6 +10,7 @@ from app.services.schema_org import (
     ListItem,
     Person,
     Ref,
+    Thing,
     WebPage,
     WebSite,
 )
@@ -139,3 +140,41 @@ def test_websites_and_pages_are_creative_works() -> None:
     # Each still serializes as its own @type, not its parent's.
     assert site.to_json_ld()["@type"] == "WebSite"
     assert JsonLdDocument(graph=(page,)).to_json_ld()["@graph"][0]["@type"] == "WebPage"
+
+
+class _Event(Thing):
+    """A node with fields named like document keywords, as a user might write."""
+
+    type: str = "Event"
+    context: str | None = None
+    graph: str | None = None
+
+
+def test_keyword_names_on_nodes_stay_plain_properties() -> None:
+    event = _Event(context="internal", graph="g.png")
+
+    assert event.to_json_ld() == {
+        "@type": "Event",
+        "context": "internal",
+        "graph": "g.png",
+    }
+
+
+def test_document_keywords_are_scoped_to_the_document() -> None:
+    page = WebPage(name="About", url="https://x/about")
+
+    assert set(JsonLdDocument(graph=(page,)).to_json_ld()) == {"@context", "@graph"}
+
+
+def test_field_serializing_as_a_keyword_is_rejected_at_definition() -> None:
+    with pytest.raises(TypeError, match="JSON-LD keyword '@type'"):
+
+        class _Bad(Thing):
+            kind: str = Field(alias="@type")
+
+
+def test_two_fields_with_the_same_key_are_rejected_at_definition() -> None:
+    with pytest.raises(TypeError, match="both serialize as 'sameAs'"):
+
+        class _Bad(Thing):
+            also_same_as: str = Field(alias="sameAs")
