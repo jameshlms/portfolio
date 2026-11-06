@@ -1,15 +1,19 @@
+from collections.abc import Iterator
 from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
 
+from app.services import schema_org
 from app.services.schema_org import (
     BreadcrumbList,
     CreativeWork,
     JsonLdDocument,
+    JsonLdModel,
     ListItem,
     Person,
     Ref,
+    Thing,
     WebPage,
     WebSite,
 )
@@ -139,3 +143,59 @@ def test_websites_and_pages_are_creative_works() -> None:
     # Each still serializes as its own @type, not its parent's.
     assert site.to_json_ld()["@type"] == "WebSite"
     assert JsonLdDocument(graph=(page,)).to_json_ld()["@graph"][0]["@type"] == "WebPage"
+
+
+class _Event(Thing):
+    """A node with fields named like document keywords, as a user might write."""
+
+    type: str = "Event"
+    context: str | None = None
+    graph: str | None = None
+
+
+def test_keyword_names_on_nodes_stay_plain_properties() -> None:
+    event = _Event(context="internal", graph="g.png")
+
+    assert event.to_json_ld() == {
+        "@type": "Event",
+        "context": "internal",
+        "graph": "g.png",
+    }
+
+
+def test_document_keywords_are_scoped_to_the_document() -> None:
+    page = WebPage(name="About", url="https://x/about")
+
+    assert set(JsonLdDocument(graph=(page,)).to_json_ld()) == {"@context", "@graph"}
+
+
+def _models_in(module_name: str) -> list[type[JsonLdModel]]:
+    """Every JsonLdModel subclass defined in a module (not test helpers elsewhere)."""
+
+    def walk(cls: type[JsonLdModel]) -> Iterator[type[JsonLdModel]]:
+        for sub in cls.__subclasses__():
+            yield sub
+            yield from walk(sub)
+
+    return [m for m in walk(JsonLdModel) if m.__module__ == module_name]
+
+
+# The only JSON-LD keywords each kind of model may emit.
+_DOCUMENT_KEYWORD_KEYS = {"@context", "@graph"}
+_NODE_KEYWORD_KEYS = {"@type", "@id"}
+
+
+@pytest.mark.parametrize(
+    "model", _models_in(schema_org.__name__), ids=lambda m: m.__name__
+)
+def test_no_field_collides_with_a_keyword_or_another_field(
+    model: type[JsonLdModel],
+) -> None:
+    keys = [
+        info.serialization_alias or info.alias or name
+        for name, info in model.model_fields.items()
+    ]
+    allowed = _DOCUMENT_KEYWORD_KEYS if model is JsonLdDocument else _NODE_KEYWORD_KEYS
+
+    assert len(keys) == len(set(keys)), f"duplicate keys: {keys}"
+    assert {k for k in keys if k.startswith("@")} <= allowed

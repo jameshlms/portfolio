@@ -1,8 +1,10 @@
 """schema.org nodes for JSON-LD structured data.
 
-Fields are snake_case in Python. JSON-LD keywords serialize with their "@" prefix
-(`type` -> "@type", `graph` -> "@graph"); schema.org properties serialize camelCase
-(`same_as` -> "sameAs"). Parsing accepts the JSON-LD names, so documents round-trip:
+Fields are snake_case in Python. JSON-LD keywords serialize with their "@" prefix,
+scoped to the model they belong to (`type`/`id` -> "@type"/"@id" on nodes,
+`context`/`graph` -> "@context"/"@graph" on the document); schema.org properties
+serialize camelCase (`same_as` -> "sameAs"). Parsing accepts the JSON-LD names, so
+documents round-trip:
 `JsonLdDocument.from_json_ld(doc.to_json_ld()) == doc`.
 
 The class hierarchy mirrors schema.org's (Thing -> CreativeWork -> WebSite, ...), and
@@ -17,7 +19,7 @@ optional one.
 # mutable and reports any narrowed override. Pydantic validates the result at runtime.
 # pyright: reportIncompatibleVariableOverride=false
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime
 from typing import Annotated, Any, Literal, Self
 
@@ -27,21 +29,23 @@ from pydantic.alias_generators import to_camel
 SCHEMA_ORG = "https://schema.org"
 
 # JSON-LD keywords: defined by the format itself, so "@"-prefixed to never collide with
-# a vocabulary property of the same name.
-_KEYWORDS = {"context": "@context", "graph": "@graph", "type": "@type", "id": "@id"}
+# a vocabulary property of the same name. Each kind of model maps only its own keywords,
+# so a node field named `context` or `graph` stays a plain "context" / "graph" property.
+_NODE_KEYWORDS: Mapping[str, str] = {"type": "@type", "id": "@id"}
+_DOCUMENT_KEYWORDS: Mapping[str, str] = {"context": "@context", "graph": "@graph"}
 
 
-def _alias(field_name: str) -> str:
-    return _KEYWORDS.get(field_name, to_camel(field_name))
+def _aliases(keywords: Mapping[str, str]) -> Callable[[str], str]:
+    return lambda field_name: keywords.get(field_name, to_camel(field_name))
 
 
 class JsonLdModel(BaseModel):
-    """Base for anything written as JSON-LD."""
+    """Base for anything written as JSON-LD. Nodes by default; see JsonLdDocument."""
 
     model_config = ConfigDict(
         frozen=True,
         extra="forbid",  # a misspelled property fails here instead of shipping
-        alias_generator=_alias,
+        alias_generator=_aliases(_NODE_KEYWORDS),
         validate_by_name=True,  # build with Python names...
         validate_by_alias=True,  # ...or parse JSON-LD names
         serialize_by_alias=True,
@@ -134,6 +138,8 @@ type GraphNode = Annotated[
 
 class JsonLdDocument(JsonLdModel):
     """A JSON-LD document: nodes sharing one @context, linked to each other by @id."""
+
+    model_config = ConfigDict(alias_generator=_aliases(_DOCUMENT_KEYWORDS))
 
     context: Literal["https://schema.org"] = SCHEMA_ORG
     graph: tuple[GraphNode, ...]
