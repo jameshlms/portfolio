@@ -167,10 +167,6 @@ nav {
     transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-.nav-tab:hover {
-    background-color: var(--surface-hover);
-}
-
 /* Current page. */
 .nav-tab[aria-current="page"] {
     background-color: var(--surface-active);
