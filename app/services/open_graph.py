@@ -2,7 +2,7 @@
 
 Fields are snake_case in Python and serialize to namespaced property names:
 `site_name` -> "og:site_name", `image_alt` -> "og:image:alt", `tags` -> "article:tag".
-Field order is output order, which matters: og:image:alt must follow og:image.
+Field order is output order, which matters: og:image:* properties must follow og:image.
 """
 
 from collections.abc import Callable
@@ -47,6 +47,16 @@ class OpenGraph(_MetaProperties):
     site_name: str
     locale: str = "en_US"
     image: str | None = None
+    image_width: int | None = Field(
+        default=None,
+        serialization_alias="og:image:width",
+        validation_alias="og:image:width",
+    )
+    image_height: int | None = Field(
+        default=None,
+        serialization_alias="og:image:height",
+        validation_alias="og:image:height",
+    )
     image_alt: str | None = Field(
         default=None,
         serialization_alias="og:image:alt",

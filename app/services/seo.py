@@ -86,6 +86,24 @@ class SocialImage:
 
     url: str  # absolute
     alt: str
+    width: (
+        int  # pixels; sent as og:image:width/height so previews lay out without a fetch
+    )
+    height: int
+
+    @property
+    def is_wide(self) -> bool:
+        """Wide enough for a large preview card (1200x630, the usual size, is ~1.91:1)."""
+        return self.width >= 1.9 * self.height
+
+
+# Used wherever a page has no image of its own. Swap for a 1200x630 image for large cards.
+DEFAULT_SOCIAL_IMAGE = SocialImage(
+    url=absolute_url(_PROFILE_IMAGE),
+    alt=f"Profile picture of {settings.site_name}",
+    width=868,
+    height=868,
+)
 
 
 # --- <head> metadata ---------------------------------------------------------
@@ -99,7 +117,7 @@ class SEOContext:
     description: str
     path: str  # canonical path, no query string
     noindex: bool = False
-    image: SocialImage | None = None
+    image: SocialImage | None = DEFAULT_SOCIAL_IMAGE
     article: OpenGraphArticle | None = None  # set for long-form pages (og:type=article)
     structured_data: tuple[GraphNode, ...] = ()  # schema.org nodes for one @graph
 
@@ -123,6 +141,8 @@ class SEOContext:
             url=None if self.noindex else self.canonical,
             site_name=settings.site_name,
             image=self.image.url if self.image else None,
+            image_width=self.image.width if self.image else None,
+            image_height=self.image.height if self.image else None,
             image_alt=self.image.alt if self.image else None,
         )
 
@@ -134,7 +154,7 @@ class SEOContext:
 
     @property
     def twitter_card(self) -> Literal["summary", "summary_large_image"]:
-        return "summary_large_image" if self.image else "summary"
+        return "summary_large_image" if self.image and self.image.is_wide else "summary"
 
     @property
     def json_ld(self) -> dict[str, Any]:
@@ -231,9 +251,14 @@ def for_project(project: Any) -> SEOContext:
         title=project.seo_title or project.title,
         description=project.summary,
         path=path,
-        image=SocialImage(project.cover.og_url, project.cover.alt)
+        image=SocialImage(
+            project.cover.og_url,
+            project.cover.alt,
+            project.cover.width,
+            project.cover.height,
+        )
         if project.cover
-        else None,
+        else DEFAULT_SOCIAL_IMAGE,
         article=OpenGraphArticle(  # long-form case study; drop for og:type=website
             published_time=project.published_at,
             modified_time=project.updated_at,

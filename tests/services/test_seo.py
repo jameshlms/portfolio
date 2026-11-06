@@ -1,9 +1,11 @@
 from dataclasses import replace
 from datetime import UTC, datetime
+from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 
-from app import paths
+from app import APP_DIR, paths
 from app.config import settings
 from app.services import seo
 from app.services.seo import (
@@ -162,15 +164,56 @@ def test_noindex_pages_have_no_og_url() -> None:
     assert "og:url" not in props
 
 
-def test_social_image_sets_og_image_and_large_card() -> None:
+def test_pages_default_to_the_profile_image_with_a_small_card() -> None:
+    about = for_page(paths.Page.ABOUT)
+    props = dict(about.meta_properties)
+
+    assert about.image == seo.DEFAULT_SOCIAL_IMAGE
+    assert props["og:image"] == seo.DEFAULT_SOCIAL_IMAGE.url
+    assert props["og:image:width"] == "868"
+    assert props["og:image:height"] == "868"
+    assert props["og:image:alt"] == f"Profile picture of {settings.site_name}"
+    assert about.twitter_card == "summary"  # square image: a large card would crop it
+
+
+def test_wide_social_image_gets_a_large_card() -> None:
     page = replace(
-        for_page(paths.Page.ABOUT), image=seo.SocialImage("https://x/a.png", "Alt")
+        for_page(paths.Page.ABOUT),
+        image=seo.SocialImage("https://x/a.png", "Alt", 1200, 630),
     )
 
     props = dict(page.meta_properties)
     assert props["og:image"] == "https://x/a.png"
     assert props["og:image:alt"] == "Alt"
     assert page.twitter_card == "summary_large_image"
+
+
+def test_page_without_image_has_no_og_image() -> None:
+    page = replace(for_page(paths.Page.ABOUT), image=None)
+
+    assert "og:image" not in dict(page.meta_properties)
+    assert page.twitter_card == "summary"
+
+
+def _jpeg_size(path: Path) -> tuple[int, int]:
+    """(width, height) from a JPEG's start-of-frame header."""
+    data = path.read_bytes()
+    i = 2  # skip the start-of-image marker
+    while i < len(data):
+        marker, length = data[i + 1], int.from_bytes(data[i + 2 : i + 4])
+        if marker in (0xC0, 0xC1, 0xC2):
+            return int.from_bytes(data[i + 7 : i + 9]), int.from_bytes(
+                data[i + 5 : i + 7]
+            )
+        i += 2 + length
+    raise ValueError(f"no frame header in {path}")
+
+
+def test_default_image_dimensions_match_the_file() -> None:
+    image = seo.DEFAULT_SOCIAL_IMAGE
+    file = APP_DIR / urlsplit(image.url).path.removeprefix("/")
+
+    assert _jpeg_size(file) == (image.width, image.height)
 
 
 def test_article_switches_og_type_and_appends_article_properties() -> None:

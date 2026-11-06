@@ -53,7 +53,7 @@ app/
     open_graph.py       # OpenGraph / OpenGraphArticle -> <meta property> pairs
   templates/
     base.html           # Layout; renders <head> entirely from `seo`
-    components/         # _header.html, _footer.html, _nav.html
+    components/         # _header.html, _footer.html, _nav.html, _plotly.html
     pages/              # index.html, about.html, contact.html
     errors/             # 404.html, 500.html
     seo/                # sitemap.xml.j2, robots.txt.j2, llms.txt.j2
@@ -69,6 +69,8 @@ scripts/hooks/          # pre-commit: djlint-reformats staged HTML
 - **SEO on every page**: each HTML response passes `seo` — `for_page(Page.X)` or, in error handlers, `for_error_page(...)`. `StrictUndefined` makes a page without it fail to render rather than ship generic metadata. Don't hand-write `<title>`, description, canonical, Open Graph or JSON-LD in page templates.
 - **PAGE_META is the single list of live pages**: it drives the sitemap, llms.txt and page metadata. Only add a page once its route is registered.
 - **Standard names**: schema.org and Open Graph models use snake_case fields that serialize to the standard's names (`type` → `@type`, `same_as` → `sameAs`, `image_alt` → `og:image:alt`). Models are frozen with `extra="forbid"` so misspelled properties fail at construction. JSON-LD keyword mappings are scoped per model (nodes: `type`/`id`; the document: `context`/`graph`), and a test checks every model for fields that would serialize as an `@` keyword it doesn't own or share a key with another field.
+- **Share images**: every page gets `og:image` from `SEOContext.image`, which defaults to `DEFAULT_SOCIAL_IMAGE` (the profile photo, 868×868). Pass a `SocialImage` with real `width`/`height` to override; only wide images (≈1.91:1, e.g. 1200×630) get a large Twitter card.
+- **Charts**: plotly.js is not loaded globally. A page that renders `charts.render_chart(...)` includes `components/_plotly.html` in its `{% block head %}`.
 - **HTMX branching**: routes that render either a full page or a fragment for the same URL take `htmx: IsHtmx` (from `app.deps`) and pick the template. Global middleware sets `Vary: HX-Request` so caches don't cross-serve variants.
 - **Errors**: `HTTPException` propagates to `app.exception_handlers.http_exception_handler`, which renders `errors/404.html` or `errors/500.html` with a `noindex` SEO context. Paths under `/api/` get JSON instead.
 - **Root-level crawler files** (sitemap.xml, robots.txt, llms.txt) are rendered from `templates/seo/*.j2` by `routes/seo.py`. `sitemap.xml.j2` turns on autoescape explicitly, because `.j2` files aren't autoescaped by default.
