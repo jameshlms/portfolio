@@ -1,11 +1,46 @@
 {% extends "base.html" %}
 {% block content %}
-    <section>
+    <section class="contact">
         <h1>Contact</h1>
-        <p>Contact me by doing any of the following!</p>
-        <ul>
-            <li><a href="mailto:{{ contact_email }}">Sending an email</a></li>
-            <li><a href="{{ linkedin_url }}" target="_blank">Reaching out on LinkedIn</a></li>
+        <p class="prose">Want to work together or just say hi? Reach me either way below.</p>
+        <ul class="contact-links">
+            <li>
+                <a class="contact-card" href="mailto:{{ contact_email }}">
+                    <svg class="contact-card__icon"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="1.75"
+                         stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                        <path d="m3 7 9 6 9-6" />
+                    </svg>
+                    <span class="contact-card__text">
+                        <span class="contact-card__label">Email</span>
+                        <span class="contact-card__value">{{ contact_email }}</span>
+                    </span>
+                </a>
+            </li>
+            <li>
+                <a class="contact-card"
+                   href="{{ linkedin_url }}"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                    {# Official LinkedIn [in] logo, unmodified (brand.linkedin.com/downloads). #}
+                    <span class="contact-card__brand">
+                        <img src="{{ url_for('static', path='images/brands/linkedin-in-blue.png') }}"
+                             alt=""
+                             width="635"
+                             height="540" />
+                    </span>
+                    <span class="contact-card__text">
+                        <span class="contact-card__label">LinkedIn</span>
+                        <span class="contact-card__value">Message me on LinkedIn</span>
+                    </span>
+                </a>
+            </li>
         </ul>
     </section>
 {% endblock %}
