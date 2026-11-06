@@ -21,7 +21,7 @@ optional one.
 
 from collections.abc import Callable, Mapping
 from datetime import datetime
-from typing import Annotated, Any, ClassVar, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -42,7 +42,6 @@ def _aliases(keywords: Mapping[str, str]) -> Callable[[str], str]:
 class JsonLdModel(BaseModel):
     """Base for anything written as JSON-LD. Nodes by default; see JsonLdDocument."""
 
-    jsonld_keywords: ClassVar[Mapping[str, str]] = _NODE_KEYWORDS
     model_config = ConfigDict(
         frozen=True,
         extra="forbid",  # a misspelled property fails here instead of shipping
@@ -51,23 +50,6 @@ class JsonLdModel(BaseModel):
         validate_by_alias=True,  # ...or parse JSON-LD names
         serialize_by_alias=True,
     )
-
-    @classmethod
-    def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
-        """Reject, at class definition, any field that could collide in the output."""
-        super().__pydantic_init_subclass__(**kwargs)
-        seen: dict[str, str] = {}
-        for name, info in cls.model_fields.items():
-            key = info.serialization_alias or info.alias or name
-            if key.startswith("@") and cls.jsonld_keywords.get(name) != key:
-                raise TypeError(
-                    f"{cls.__name__}.{name} would serialize as JSON-LD keyword {key!r}"
-                )
-            if key in seen:
-                raise TypeError(
-                    f"{cls.__name__}.{name} and .{seen[key]} both serialize as {key!r}"
-                )
-            seen[key] = name
 
     def to_json_ld(self) -> dict[str, Any]:
         return self.model_dump(mode="json", exclude_none=True)
@@ -157,7 +139,6 @@ type GraphNode = Annotated[
 class JsonLdDocument(JsonLdModel):
     """A JSON-LD document: nodes sharing one @context, linked to each other by @id."""
 
-    jsonld_keywords: ClassVar[Mapping[str, str]] = _DOCUMENT_KEYWORDS
     model_config = ConfigDict(alias_generator=_aliases(_DOCUMENT_KEYWORDS))
 
     context: Literal["https://schema.org"] = SCHEMA_ORG

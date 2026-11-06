@@ -1,12 +1,15 @@
+from collections.abc import Iterator
 from datetime import UTC, datetime
 
 import pytest
-from pydantic import Field, ValidationError
+from pydantic import ValidationError
 
+from app.services import schema_org
 from app.services.schema_org import (
     BreadcrumbList,
     CreativeWork,
     JsonLdDocument,
+    JsonLdModel,
     ListItem,
     Person,
     Ref,
@@ -166,15 +169,33 @@ def test_document_keywords_are_scoped_to_the_document() -> None:
     assert set(JsonLdDocument(graph=(page,)).to_json_ld()) == {"@context", "@graph"}
 
 
-def test_field_serializing_as_a_keyword_is_rejected_at_definition() -> None:
-    with pytest.raises(TypeError, match="JSON-LD keyword '@type'"):
+def _models_in(module_name: str) -> list[type[JsonLdModel]]:
+    """Every JsonLdModel subclass defined in a module (not test helpers elsewhere)."""
 
-        class _Bad(Thing):
-            kind: str = Field(alias="@type")
+    def walk(cls: type[JsonLdModel]) -> Iterator[type[JsonLdModel]]:
+        for sub in cls.__subclasses__():
+            yield sub
+            yield from walk(sub)
+
+    return [m for m in walk(JsonLdModel) if m.__module__ == module_name]
 
 
-def test_two_fields_with_the_same_key_are_rejected_at_definition() -> None:
-    with pytest.raises(TypeError, match="both serialize as 'sameAs'"):
+# The only JSON-LD keywords each kind of model may emit.
+_DOCUMENT_KEYWORD_KEYS = {"@context", "@graph"}
+_NODE_KEYWORD_KEYS = {"@type", "@id"}
 
-        class _Bad(Thing):
-            also_same_as: str = Field(alias="sameAs")
+
+@pytest.mark.parametrize(
+    "model", _models_in(schema_org.__name__), ids=lambda m: m.__name__
+)
+def test_no_field_collides_with_a_keyword_or_another_field(
+    model: type[JsonLdModel],
+) -> None:
+    keys = [
+        info.serialization_alias or info.alias or name
+        for name, info in model.model_fields.items()
+    ]
+    allowed = _DOCUMENT_KEYWORD_KEYS if model is JsonLdDocument else _NODE_KEYWORD_KEYS
+
+    assert len(keys) == len(set(keys)), f"duplicate keys: {keys}"
+    assert {k for k in keys if k.startswith("@")} <= allowed
