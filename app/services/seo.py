@@ -56,7 +56,7 @@ class PageMeta:
 PAGE_META: dict[paths.Page, PageMeta] = {   # placeholder copy: write your own
     paths.Page.HOME:     PageMeta("Data engineer building ML systems", "Pipelines, platforms and ML systems by James."),
     paths.Page.ABOUT:    PageMeta("About", "Background, skills and how I work.", "ProfilePage"),
-    paths.Page.CONTACT:  PageMeta("Contact", "Get in touch.", "ContactPage"),
+    paths.Page.CONTACT:  PageMeta("Contact", "Get in touch about roles, projects and collaborations.", "ContactPage"),
 }
 # fmt: on
 

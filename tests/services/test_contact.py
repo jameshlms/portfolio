@@ -1,0 +1,132 @@
+import asyncio
+
+import pytest
+
+from app.services.contact import (
+    MESSAGE_MAX,
+    ContactMessage,
+    DeliveryFailed,
+    HumanCheckFailed,
+    InvalidContactMessage,
+    OutgoingEmail,
+    Purpose,
+    compose_email,
+    send_contact_message,
+)
+
+_VALID = {
+    "name": "Ada Lovelace",
+    "reply_to": "ada@example.com",
+    "purpose": "job",
+    "message": "I'd like to talk about a role.",
+}
+
+
+def _parse(**overrides: str) -> ContactMessage:
+    return ContactMessage.parse(**{**_VALID, **overrides})
+
+
+def _errors(**overrides: str) -> dict[str, str]:
+    with pytest.raises(InvalidContactMessage) as exc:
+        _parse(**overrides)
+    return dict(exc.value.errors)
+
+
+def test_parse_normalises_input() -> None:
+    message = _parse(name="  Ada \n Lovelace ", message="  Hello\r\nthere, friend  ")
+
+    assert message.name == "Ada Lovelace"
+    assert message.message == "Hello\nthere, friend"
+    assert message.purpose is Purpose.JOB
+
+
+@pytest.mark.parametrize(
+    "reply_to", ["ada@example.com", "+44 7700 900123", "(555) 010-9999"]
+)
+def test_parse_accepts_email_or_phone(reply_to: str) -> None:
+    assert _parse(reply_to=reply_to).reply_to == reply_to
+
+
+@pytest.mark.parametrize(
+    "reply_to", ["ada@", "not an address", "12345", "+1 (555) abc"]
+)
+def test_parse_rejects_other_reply_to(reply_to: str) -> None:
+    assert "reply_to" in _errors(reply_to=reply_to)
+
+
+def test_parse_reports_every_broken_rule_at_once() -> None:
+    errors = _errors(name=" ", reply_to="", purpose="spam", message="short")
+
+    assert set(errors) == {"name", "reply_to", "purpose", "message"}
+
+
+def test_parse_limits_message_length() -> None:
+    assert "message" in _errors(message="x" * (MESSAGE_MAX + 1))
+
+
+def test_reply_email_is_only_set_for_email_addresses() -> None:
+    assert _parse().reply_email == "ada@example.com"
+    assert _parse(reply_to="+44 7700 900123").reply_email is None
+
+
+def test_compose_email_labels_purpose_and_replies_to_sender() -> None:
+    email = compose_email(_parse(), recipient="me@example.com")
+
+    assert email.to == "me@example.com"
+    assert email.reply_to == "ada@example.com"
+    assert email.subject == "[Job opportunity] Message from Ada Lovelace"
+    assert "Reply to: ada@example.com" in email.text
+    assert email.text.endswith("I'd like to talk about a role.\n")
+
+
+class _Verifier:
+    def __init__(self, passes: bool) -> None:
+        self.passes = passes
+
+    async def verify(self, token: str, remote_ip: str | None) -> bool:
+        return self.passes
+
+
+class _Sender:
+    def __init__(self, fail: bool = False) -> None:
+        self.fail = fail
+        self.sent: list[OutgoingEmail] = []
+
+    async def send(self, email: OutgoingEmail) -> None:
+        if self.fail:
+            raise DeliveryFailed
+        self.sent.append(email)
+
+
+def _send(verifier: _Verifier, sender: _Sender) -> None:
+    asyncio.run(
+        send_contact_message(
+            _parse(),
+            token="t",
+            remote_ip=None,
+            verifier=verifier,
+            sender=sender,
+            recipient="me@example.com",
+        )
+    )
+
+
+def test_send_delivers_once_the_visitor_is_verified() -> None:
+    sender = _Sender()
+
+    _send(_Verifier(passes=True), sender)
+
+    assert [email.to for email in sender.sent] == ["me@example.com"]
+
+
+def test_send_refuses_unverified_visitors() -> None:
+    sender = _Sender()
+
+    with pytest.raises(HumanCheckFailed):
+        _send(_Verifier(passes=False), sender)
+    assert sender.sent == []
+
+
+def test_send_passes_delivery_failures_up() -> None:
+    with pytest.raises(DeliveryFailed):
+        _send(_Verifier(passes=True), _Sender(fail=True))
