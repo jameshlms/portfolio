@@ -1,10 +1,27 @@
-{# Design only: no POST /contact route exists yet, so this form is not wired up. #}
-<section class="contact-form-section" aria-labelledby="contact-form-title">
-    <h2 id="contact-form-title" class="contact-form-section__title">Send a message</h2>
-    <p class="contact-form-section__intro">Prefer a form? Fill this in and I'll get back to you.</p>
-    <form class="contact-form"
+{# The contact form in one state (empty, with errors, or sent). Rendered inside
+   pages/contact.html and returned on its own to htmx, which swaps it in place. #}
+{% if form.sent_to is not none %}
+    <div id="contact-form"
+         class="contact-form contact-form--sent"
+         role="status">
+        <p class="contact-form__sent-title">Thanks{% if form.sent_to %}, {{ form.sent_to }}{% endif %}!</p>
+        <p>Your message is on its way. I'll get back to you soon.</p>
+    </div>
+{% else %}
+    <form id="contact-form"
+          class="contact-form"
           method="post"
+          action="{{ url_for('send_contact') }}"
+          hx-post="{{ url_for('send_contact') }}"
+          hx-swap="outerHTML"
+          hx-disable="find button"
           aria-labelledby="contact-form-title">
+        {% if form.form_error %}
+            <p class="contact-form__alert" role="alert">
+                {{ form.form_error }}
+                <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>
+            </p>
+        {% endif %}
         <div class="contact-form__row">
             <div class="contact-form__field">
                 <label for="contact-name">Name</label>
@@ -13,7 +30,13 @@
                        type="text"
                        autocomplete="name"
                        maxlength="100"
+                       value="{{ form.values.get('name', '') }}"
+                       {% if form.errors.get('name') %}aria-invalid="true" aria-describedby="contact-name-error"{% endif %}
                        required />
+                {% if form.errors.get("name") %}
+                    <p id="contact-name-error"
+                       class="contact-form__error">{{ form.errors.get("name") }}</p>
+                {% endif %}
             </div>
             <div class="contact-form__field">
                 <label for="contact-reply">How can I reach you?</label>
@@ -24,34 +47,67 @@
                        inputmode="email"
                        maxlength="254"
                        placeholder="you@example.com"
-                       aria-describedby="contact-reply-hint"
+                       value="{{ form.values.get('reply_to', '') }}"
+                       aria-describedby="contact-reply-hint{% if form.errors.get('reply_to') %} contact-reply-error{% endif %}"
+                       {% if form.errors.get('reply_to') %}aria-invalid="true"{% endif %}
                        required />
                 <p id="contact-reply-hint"
                    class="contact-form__hint">Email preferred; a phone number works too.</p>
+                {% if form.errors.get("reply_to") %}
+                    <p id="contact-reply-error"
+                       class="contact-form__error">{{ form.errors.get("reply_to") }}</p>
+                {% endif %}
             </div>
         </div>
         <div class="contact-form__field">
             <label for="contact-purpose">What's it about?</label>
-            <select id="contact-purpose" name="purpose" required>
-                <option value="" selected disabled>Choose one</option>
-                <option value="job">Job opportunity</option>
-                <option value="project">Freelance or project work</option>
-                <option value="collaboration">Collaboration</option>
-                <option value="question">Question about my work</option>
-                <option value="other">Something else</option>
+            {% set chosen = form.values.get('purpose', '') %}
+            <select id="contact-purpose"
+                    name="purpose"
+                    {% if form.errors.get('purpose') %}aria-invalid="true" aria-describedby="contact-purpose-error"{% endif %}
+                    required>
+                <option value="" disabled {% if not chosen %}selected{% endif %}>Choose one</option>
+                {% for purpose in purposes %}
+                    <option value="{{ purpose.value }}"
+                            {% if chosen == purpose.value %}selected{% endif %}>{{ purpose.label }}</option>
+                {% endfor %}
             </select>
+            {% if form.errors.get("purpose") %}
+                <p id="contact-purpose-error"
+                   class="contact-form__error">{{ form.errors.get("purpose") }}</p>
+            {% endif %}
         </div>
         <div class="contact-form__field">
             {# djlint:off H042 #}{# djlint 1.49 ignores ids on <textarea>, so it reports this label as unmatched. #}
             <label for="contact-message">Message</label>
             {# djlint:on #}
             <textarea id="contact-message"
-                  name="message"
-                  rows="6"
-                  minlength="10"
-                  maxlength="5000"
-                  required></textarea>
+                      name="message"
+                      rows="6"
+                      minlength="10"
+                      maxlength="5000"
+                      {% if form.errors.get('message') %}aria-invalid="true" aria-describedby="contact-message-error"{% endif %}
+                      required>{{ form.values.get('message', '') }}</textarea>
+            {% if form.errors.get("message") %}
+                <p id="contact-message-error"
+                    class="contact-form__error">{{ form.errors.get("message") }}</p>
+            {% endif %}
         </div>
-        <button class="contact-form__submit" type="submit">Send message</button>
+        {# Honeypot: hidden from people and screen readers; bots that fill every field trip it. #}
+        <div class="contact-form__hp" aria-hidden="true">
+            <label for="contact-website">Website</label>
+            <input id="contact-website"
+                   name="website"
+                   type="text"
+                   tabindex="-1"
+                   autocomplete="off" />
+        </div>
+        <div class="contact-form__footer">
+            <div class="turnstile" data-sitekey="{{ turnstile_site_key }}"></div>
+            <button class="contact-form__submit" type="submit">
+                <span class="contact-form__submit-idle">Send message</span>
+                <span class="contact-form__submit-busy">Sending…</span>
+            </button>
+        </div>
     </form>
-</section>
+{% endif %}

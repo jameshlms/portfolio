@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     github_url: WebUrl = "https://github.com/jameshlms"
     contact_email: str = "j.r.holmes@outlook.com"
     gravatar_url: WebUrl | None = "https://gravatar.com/hardrebel709a4b15c2"
+    # Contact form: shown once Turnstile is configured and mail can be sent (Resend,
+    # or logged in debug). contact_from_email's domain must be verified in Resend.
+    resend_api_key: str | None = None
+    contact_from_email: str = "Portfolio contact <contact@jameshlms.com>"
+    turnstile_site_key: str | None = None
+    turnstile_secret_key: str | None = None
     # Where /resume redirects (e.g. a CDN-hosted PDF). Unset, it falls back to the About page.
     resume_url: WebUrl | None = None
     allowed_hosts: list[str] = [
@@ -55,6 +61,11 @@ class Settings(BaseSettings):
     redis_url: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+    @property
+    def contact_form_enabled(self) -> bool:
+        has_mail = bool(self.resend_api_key) or self.debug
+        return bool(self.turnstile_site_key and self.turnstile_secret_key) and has_mail
 
 
 settings = Settings()

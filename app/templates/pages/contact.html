@@ -1,4 +1,13 @@
 {% extends "base.html" %}
+{% block head %}
+    {% if turnstile_site_key %}
+        <link rel="preconnect" href="https://challenges.cloudflare.com" />
+        {# Defer keeps order: the onload callback is defined before Turnstile loads. #}
+        <script src="{{ url_for('static', path='js/turnstile.js') }}" defer></script>
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad"
+                defer></script>
+    {% endif %}
+{% endblock %}
 {% block content %}
     <section class="contact">
         <h1>Contact</h1>
@@ -106,6 +115,12 @@
                 {% endif %}
             </ul>
         </section>
-        {% include "components/_contact_form.html" %}
+        {% if turnstile_site_key %}
+            <section class="contact-form-section" aria-labelledby="contact-form-title">
+                <h2 id="contact-form-title" class="contact-form-section__title">Send a message</h2>
+                <p class="contact-form-section__intro">Prefer a form? Fill this in and I'll get back to you.</p>
+                {% include "components/_contact_form.html" %}
+            </section>
+        {% endif %}
     </section>
 {% endblock %}

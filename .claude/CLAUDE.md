@@ -37,13 +37,19 @@ app/
   exception_handlers.py # HTTPException -> errors/404.html or 500.html (JSON under /api/)
   db.py                 # DeclarativeBase, lazily created async engine, get_session, close_engine
   models.py             # SQLAlchemy models (BlogPost, mirrors alembic 0001)
-  deps/                 # FastAPI dependencies: IsHtmx, DbSession
+  deps/                 # FastAPI dependencies: IsHtmx, DbSession; contact.py wires the form's
+                        #   adapters from settings; rate_limit.py (in-memory sliding window)
   routes/               # Thin HTTP handlers, one router per area
-    pages.py            # Home, About, Contact; /resume redirects to RESUME_URL (About until set)
+    pages.py            # Home, About; /resume redirects to RESUME_URL (About until set)
+    contact.py          # Contact page; POST validates, rate limits, checks Turnstile, sends
     seo.py              # sitemap.xml, robots.txt, llms.txt
     health.py           # /healthz for Railway's deploy healthcheck
     blog.py, projects.py  # In progress; not registered in main.py
+  adapters/             # Driven adapters for service ports: turnstile.py (HumanVerifier),
+                        #   resend.py (MailSender), log_mail.py (dev MailSender)
   services/
+    contact.py          # Pure contact rules: ContactMessage.parse, domain errors, ports,
+                        #   send_contact_message
     content.py          # DB queries -> domain records (e.g. published_posts -> PublishedPage)
     charts.py           # Plotly figure -> embeddable HTML
     seo.py              # PAGE_META (routed pages only), PublishedPage, SEOContext +
@@ -59,7 +65,7 @@ app/
     seo/                # sitemap.xml.j2, robots.txt.j2, llms.txt.j2
   static/               # URL-mounted at /static (css/, js/, images/, favicon.svg)
 alembic/                # Migrations (env.py imports app.db.Base and app.models)
-tests/                  # Mirrors app/: routes/, services/, plus full-app and boot tests
+tests/                  # Mirrors app/: routes/, services/, adapters/, deps/, plus full-app and boot tests
 scripts/hooks/          # pre-commit: djlint-reformats staged HTML
 ```
 
@@ -105,5 +111,5 @@ Copy `.env.example` to `.env` for local settings; the app runs with it empty.
 - **Blog and projects pages**: `routes/blog.py` and `routes/projects.py` aren't registered. `content.published_posts` is ready to feed the sitemap and llms.txt once `/blog/{slug}` has a route. Projects need a model and table first (`content.py` references undefined `Project*` names and carries ruff/pyright exceptions until then).
 - **Admin**: GitHub OAuth settings, `AdminAuthMiddleware` and `admin.css` exist, but no admin routes or session middleware are registered.
 - **llms-full.txt**: `RootFile.LLMS_FULL` is reserved; no route yet.
-- **Contact form**: `components/_contact_form.html` is design only; no POST /contact route yet (planned: Resend + Cloudflare Turnstile). Brand logos in `static/images/brands/` are the official files, unmodified.
+- **Contact form**: shown only when `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` are set and mail can go out (`RESEND_API_KEY`, or logged when `DEBUG`). Resend needs the sending domain (`CONTACT_FROM_EMAIL`) verified. The rate limit is per process; move it to Redis if the app runs more than one replica. Brand logos in `static/images/brands/` are the official files, unmodified.
 - **JSON API**: none. Build only when a real consumer (RSS reader, CLI, mobile app) exists; the error handler already returns JSON under `/api/`.

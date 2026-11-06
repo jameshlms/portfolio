@@ -26,21 +26,6 @@ async def about(request: Request):
     )
 
 
-@router.get(Page.CONTACT)
-async def contact(request: Request):
-    return _templates.TemplateResponse(
-        request,
-        "pages/contact.html",
-        {
-            "seo": seo.for_page(Page.CONTACT),
-            "contact_email": settings.contact_email,
-            "linkedin_url": settings.linkedin_url,
-            "github_url": settings.github_url,
-            "gravatar_url": settings.gravatar_url,
-        },
-    )
-
-
 @router.get(Page.RESUME, response_class=RedirectResponse)
 async def resume(request: Request) -> RedirectResponse:
     """Stable link to the résumé, wherever it's hosted (RESUME_URL).

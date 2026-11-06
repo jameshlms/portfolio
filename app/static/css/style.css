@@ -18,6 +18,8 @@
     --text-on-cream-muted: #5c5650;
     --field-bg: #fffdf8;
     --field-border: #d6cbb8;
+    --error: #b42318;
+    --error-bg: #fdecea;
     /* Smallest gap between background dots; body::before stretches it to fit the viewport. */
     --dot-min-gap: 120px;
 }
@@ -453,7 +455,6 @@ nav {
 }
 
 .contact-form__submit {
-    align-self: flex-end;
     padding: 0.6rem 1.4rem;
     border: none;
     border-radius: 0.5rem;
@@ -476,4 +477,81 @@ nav {
 
 .contact-form__submit:active {
     transform: scale(0.97);
+}
+
+/* Turnstile widget on the left, send button on the right; stacked when narrow. */
+.contact-form__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.contact-form__footer .contact-form__submit {
+    margin-left: auto;
+}
+
+.contact-form__error {
+    margin: 0;
+    color: var(--error);
+    font-size: 0.85rem;
+}
+
+.contact-form [aria-invalid="true"] {
+    border-color: var(--error);
+}
+
+.contact-form__alert {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border-left: 3px solid var(--error);
+    border-radius: 0.25rem;
+    background-color: var(--error-bg);
+    color: var(--text-dark-primary);
+}
+
+.contact-form__alert a {
+    color: inherit;
+}
+
+/* Off-screen rather than display:none, which some bots skip. */
+.contact-form__hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+/* htmx adds .htmx-request to the form while it posts; hx-disable disables the button. */
+.contact-form__submit-busy,
+.contact-form.htmx-request .contact-form__submit-idle {
+    display: none;
+}
+
+.contact-form.htmx-request .contact-form__submit-busy {
+    display: inline;
+}
+
+.contact-form__submit:disabled {
+    cursor: progress;
+    filter: saturate(0.6);
+}
+
+.contact-form--sent {
+    padding: 2rem 1.5rem;
+    border-radius: 0.75rem;
+    background-color: var(--field-bg);
+    text-align: center;
+}
+
+.contact-form--sent p {
+    margin: 0;
+    color: var(--text-dark-primary);
+}
+
+.contact-form--sent .contact-form__sent-title {
+    margin-bottom: 0.5rem;
+    font-size: 1.3rem;
 }
