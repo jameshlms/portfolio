@@ -36,6 +36,22 @@ def test_contact_links_to_email_and_linkedin(client: TestClient) -> None:
     assert settings.linkedin_url in html
 
 
+_CURRENT_NAV_TAB = re.compile(
+    r'<a class="nav-tab"\s+href="([^"]*)"\s+aria-current="page"'
+)
+
+
+@pytest.mark.parametrize("page", [Page.HOME, Page.ABOUT, Page.CONTACT])
+def test_nav_marks_only_the_current_page(client: TestClient, page: Page) -> None:
+    html = client.get(page).text
+
+    assert _CURRENT_NAV_TAB.findall(html) == [f"http://localhost{page}"]
+
+
+def test_nav_marks_no_page_on_404(client: TestClient) -> None:
+    assert _CURRENT_NAV_TAB.findall(client.get("/no-such-page").text) == []
+
+
 @pytest.mark.parametrize(
     "path", ["/robots.txt", "/sitemap.xml", "/llms.txt", "/static/css/style.css"]
 )

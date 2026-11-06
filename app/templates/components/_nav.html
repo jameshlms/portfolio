@@ -1,12 +1,12 @@
-<nav>
-    <a href="{{ url_for('home') }}">
-        <img src="{{ url_for('static', path='favicon.svg') }}"
-             alt="Personal Brand Logo"
-             width="50"
-             height="50" />
-    </a>
-    <ul>
-        <li><a class="nav-tab" href="{{ url_for('about') }}">About</a></li>
-        <li><a class="nav-tab" href="{{ url_for('contact') }}">Contact</a></li>
+<nav aria-label="Main">
+    <ul class="nav-tabs">
+        {% for route, label in [("home", "Home"), ("about", "About"), ("contact", "Contact")] %}
+            {% set href = url_for(route) %}
+            <li>
+                <a class="nav-tab"
+                   href="{{ href }}"
+                   {% if request.url.path == href.path %}aria-current="page"{% endif %}>{{ label }}</a>
+            </li>
+        {% endfor %}
     </ul>
 </nav>
