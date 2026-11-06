@@ -11,6 +11,7 @@ from app.config import settings
 from app.main import app
 from app.paths import Page
 from app.services.seo import PAGE_META, for_page
+from app.templates import make_templates
 
 
 @pytest.fixture
@@ -95,3 +96,16 @@ def test_healthz_responds_for_railway_healthcheck() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+@pytest.mark.parametrize("page", list(PAGE_META))
+def test_pages_without_charts_do_not_load_plotly(
+    client: TestClient, page: Page
+) -> None:
+    assert "cdn.plot.ly" not in client.get(page).text
+
+
+def test_plotly_include_provides_the_script() -> None:
+    html = make_templates().get_template("components/_plotly.html").render()
+
+    assert '<script src="https://cdn.plot.ly/' in html

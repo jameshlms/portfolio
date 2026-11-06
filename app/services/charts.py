@@ -11,6 +11,7 @@ def render_chart(
     div_id: str | None = None,
     config: dict | None = None,
 ) -> Markup:
+    """Chart markup without plotly.js; the page must include components/_plotly.html."""
     html = to_html(
         fig,
         full_html=False,
