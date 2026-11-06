@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     linkedin_url: WebUrl = "https://www.linkedin.com/in/jameshlms/"
     github_url: WebUrl = "https://github.com/jameshlms"
     contact_email: str = "j.r.holmes@outlook.com"
+    gravatar_url: WebUrl | None = "https://gravatar.com/hardrebel709a4b15c2"
+    # Where /resume redirects (e.g. a CDN-hosted PDF). Unset, it falls back to the About page.
+    resume_url: WebUrl | None = None
     allowed_hosts: list[str] = [
         "jameshlms.com",
         "jameshlms.github.io",

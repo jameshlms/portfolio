@@ -1,0 +1,57 @@
+{# Design only: no POST /contact route exists yet, so this form is not wired up. #}
+<section class="contact-form-section" aria-labelledby="contact-form-title">
+    <h2 id="contact-form-title" class="contact-form-section__title">Send a message</h2>
+    <p class="contact-form-section__intro">Prefer a form? Fill this in and I'll get back to you.</p>
+    <form class="contact-form"
+          method="post"
+          aria-labelledby="contact-form-title">
+        <div class="contact-form__row">
+            <div class="contact-form__field">
+                <label for="contact-name">Name</label>
+                <input id="contact-name"
+                       name="name"
+                       type="text"
+                       autocomplete="name"
+                       maxlength="100"
+                       required />
+            </div>
+            <div class="contact-form__field">
+                <label for="contact-reply">How can I reach you?</label>
+                <input id="contact-reply"
+                       name="reply_to"
+                       type="text"
+                       autocomplete="email"
+                       inputmode="email"
+                       maxlength="254"
+                       placeholder="you@example.com"
+                       aria-describedby="contact-reply-hint"
+                       required />
+                <p id="contact-reply-hint"
+                   class="contact-form__hint">Email preferred; a phone number works too.</p>
+            </div>
+        </div>
+        <div class="contact-form__field">
+            <label for="contact-purpose">What's it about?</label>
+            <select id="contact-purpose" name="purpose" required>
+                <option value="" selected disabled>Choose one</option>
+                <option value="job">Job opportunity</option>
+                <option value="project">Freelance or project work</option>
+                <option value="collaboration">Collaboration</option>
+                <option value="question">Question about my work</option>
+                <option value="other">Something else</option>
+            </select>
+        </div>
+        <div class="contact-form__field">
+            {# djlint:off H042 #}{# djlint 1.49 ignores ids on <textarea>, so it reports this label as unmatched. #}
+            <label for="contact-message">Message</label>
+            {# djlint:on #}
+            <textarea id="contact-message"
+                  name="message"
+                  rows="6"
+                  minlength="10"
+                  maxlength="5000"
+                  required></textarea>
+        </div>
+        <button class="contact-form__submit" type="submit">Send message</button>
+    </form>
+</section>

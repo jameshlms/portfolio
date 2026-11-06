@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.config import settings
 from app.paths import Page
@@ -35,5 +35,18 @@ async def contact(request: Request):
             "seo": seo.for_page(Page.CONTACT),
             "contact_email": settings.contact_email,
             "linkedin_url": settings.linkedin_url,
+            "github_url": settings.github_url,
+            "gravatar_url": settings.gravatar_url,
         },
     )
+
+
+@router.get(Page.RESUME, response_class=RedirectResponse)
+async def resume(request: Request) -> RedirectResponse:
+    """Stable link to the résumé, wherever it's hosted (RESUME_URL).
+
+    A placeholder until the résumé is published: with RESUME_URL unset it sends
+    visitors to the About page. 307 because the target is expected to change.
+    """
+    target = settings.resume_url or str(request.url_for("about"))
+    return RedirectResponse(target, status_code=307)

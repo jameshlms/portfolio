@@ -52,6 +52,50 @@ def test_nav_marks_no_page_on_404(client: TestClient) -> None:
     assert _CURRENT_NAV_TAB.findall(client.get("/no-such-page").text) == []
 
 
+def test_contact_lists_every_way_to_reach_me(client: TestClient) -> None:
+    html = client.get(Page.CONTACT).text
+
+    assert "Get in Touch or Find More About Me" in html
+    for href in (
+        f"mailto:{settings.contact_email}",
+        settings.linkedin_url,
+        settings.github_url,
+        f"http://localhost{Page.RESUME}",
+        settings.gravatar_url,
+    ):
+        assert f'href="{href}"' in html
+
+
+def test_contact_hides_gravatar_card_when_unset(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "gravatar_url", None)
+
+    assert "Gravatar" not in client.get(Page.CONTACT).text
+
+
+def test_resume_redirects_to_configured_url(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "resume_url", "https://cdn.example.com/resume.pdf")
+
+    response = client.get(Page.RESUME, follow_redirects=False)
+
+    assert response.status_code == 307
+    assert response.headers["location"] == "https://cdn.example.com/resume.pdf"
+
+
+def test_resume_falls_back_to_about_page_when_unset(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "resume_url", None)
+
+    response = client.get(Page.RESUME, follow_redirects=False)
+
+    assert response.status_code == 307
+    assert response.headers["location"] == f"http://localhost{Page.ABOUT}"
+
+
 @pytest.mark.parametrize(
     "path", ["/robots.txt", "/sitemap.xml", "/llms.txt", "/static/css/style.css"]
 )

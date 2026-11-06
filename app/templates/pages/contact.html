@@ -2,45 +2,110 @@
 {% block content %}
     <section class="contact">
         <h1>Contact</h1>
-        <p class="prose">Want to work together or just say hi? Reach me either way below.</p>
-        <ul class="contact-links">
-            <li>
-                <a class="contact-card" href="mailto:{{ contact_email }}">
-                    <svg class="contact-card__icon"
-                         viewBox="0 0 24 24"
-                         aria-hidden="true"
-                         fill="none"
-                         stroke="currentColor"
-                         stroke-width="1.75"
-                         stroke-linecap="round"
-                         stroke-linejoin="round">
-                        <rect x="3" y="5" width="18" height="14" rx="2" />
-                        <path d="m3 7 9 6 9-6" />
-                    </svg>
-                    <span class="contact-card__text">
-                        <span class="contact-card__label">Email</span>
-                        <span class="contact-card__value">{{ contact_email }}</span>
-                    </span>
-                </a>
-            </li>
-            <li>
-                <a class="contact-card"
-                   href="{{ linkedin_url }}"
-                   target="_blank"
-                   rel="noopener noreferrer">
-                    {# Official LinkedIn [in] logo, unmodified (brand.linkedin.com/downloads). #}
-                    <span class="contact-card__brand">
-                        <img src="{{ url_for('static', path='images/brands/linkedin-in-blue.png') }}"
-                             alt=""
-                             width="635"
-                             height="540" />
-                    </span>
-                    <span class="contact-card__text">
-                        <span class="contact-card__label">LinkedIn</span>
-                        <span class="contact-card__value">Message me on LinkedIn</span>
-                    </span>
-                </a>
-            </li>
-        </ul>
+        <p class="prose">Hiring, planning a project, or interested in collaborating? Get in touch, or find out more about me and my work below.</p>
+        <section class="contact-direct" aria-labelledby="contact-direct-title">
+            <h2 id="contact-direct-title"
+                class="contact-direct__title">Get in Touch or Find More About Me</h2>
+            <ul class="contact-links">
+                <li>
+                    <a class="contact-card" href="mailto:{{ contact_email }}">
+                        <svg class="contact-card__icon"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.75"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <rect x="3" y="5" width="18" height="14" rx="2" />
+                            <path d="m3 7 9 6 9-6" />
+                        </svg>
+                        <span class="contact-card__text">
+                            <span class="contact-card__label">Email</span>
+                            <span class="contact-card__value">{{ contact_email }}</span>
+                        </span>
+                    </a>
+                </li>
+                <li>
+                    <a class="contact-card"
+                       href="{{ linkedin_url }}"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        {# Official LinkedIn [in] logo, unmodified (brand.linkedin.com/downloads). #}
+                        <span class="contact-card__brand contact-card__brand--linkedin">
+                            <img src="{{ url_for('static', path='images/brands/linkedin-in-blue.png') }}"
+                                 alt=""
+                                 width="635"
+                                 height="540" />
+                        </span>
+                        <span class="contact-card__text">
+                            <span class="contact-card__label">LinkedIn</span>
+                            <span class="contact-card__value">Message me on LinkedIn</span>
+                        </span>
+                    </a>
+                </li>
+                <li>
+                    <a class="contact-card"
+                       href="{{ github_url }}"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        {# Official GitHub mark, white, unmodified (github.com/logos). #}
+                        <span class="contact-card__brand">
+                            <img src="{{ url_for('static', path='images/brands/github-mark-white.png') }}"
+                                 alt=""
+                                 width="294"
+                                 height="288" />
+                        </span>
+                        <span class="contact-card__text">
+                            <span class="contact-card__label">GitHub</span>
+                            <span class="contact-card__value">See my code and projects</span>
+                        </span>
+                    </a>
+                </li>
+                <li>
+                    <a class="contact-card"
+                       href="{{ url_for('resume') }}"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        <svg class="contact-card__icon"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.75"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+                            <path d="M14 3v5h5M9 13h6M9 17h6" />
+                        </svg>
+                        <span class="contact-card__text">
+                            <span class="contact-card__label">Résumé</span>
+                            <span class="contact-card__value">View or download (PDF)</span>
+                        </span>
+                    </a>
+                </li>
+                {% if gravatar_url %}
+                    <li>
+                        <a class="contact-card"
+                           href="{{ gravatar_url }}"
+                           target="_blank"
+                           rel="noopener noreferrer">
+                            {# Gravatar logo as served on gravatar.com, unmodified. #}
+                            <span class="contact-card__brand">
+                                <img src="{{ url_for('static', path='images/brands/gravatar-logo.svg') }}"
+                                     alt=""
+                                     width="32"
+                                     height="33" />
+                            </span>
+                            <span class="contact-card__text">
+                                <span class="contact-card__label">Gravatar</span>
+                                <span class="contact-card__value">My profile and links</span>
+                            </span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </section>
+        {% include "components/_contact_form.html" %}
     </section>
 {% endblock %}
