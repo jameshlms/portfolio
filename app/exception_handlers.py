@@ -1,3 +1,6 @@
+from collections.abc import Callable, Coroutine
+from typing import Any
+
 from fastapi import Request
 from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException
@@ -42,4 +45,10 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> Respon
     )
 
 
-exception_handlers = {HTTPException: http_exception_handler}
+type ExceptionHandler = Callable[[Request, Any], Coroutine[Any, Any, Response]]
+
+# Annotated with FastAPI's parameter type: dict is invariant, so the inferred
+# dict[type[HTTPException], ...] wouldn't be accepted.
+exception_handlers: dict[int | type[Exception], ExceptionHandler] = {
+    HTTPException: http_exception_handler
+}

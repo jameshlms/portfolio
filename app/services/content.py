@@ -1,5 +1,6 @@
 # Project, ProjectRead, ProjectSummary and Kind don't exist yet; drop both lines once they do.
 # ruff: noqa: F821
+# pyright: reportUndefinedVariable=false
 from __future__ import annotations
 
 from sqlalchemy import select

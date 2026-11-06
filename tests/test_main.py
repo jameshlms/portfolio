@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.config import settings
 from app.main import app
+from app.paths import Page
 from app.services.seo import PAGE_META, for_page
 
 
@@ -49,7 +50,7 @@ def _head_tag(html: str, pattern: str) -> str:
 
 @pytest.mark.parametrize("page", list(PAGE_META))
 def test_pages_render_head_metadata_from_seo_context(
-    client: TestClient, page: str
+    client: TestClient, page: Page
 ) -> None:
     html = client.get(page).text
     expected = for_page(page)

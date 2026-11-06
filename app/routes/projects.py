@@ -21,6 +21,7 @@ async def projects(request: Request, htmx: IsHtmx):
 
 @router.get("/{slug}")
 async def project(request: Request, slug: str, htmx: IsHtmx):
-    return templates.TemplateResponse(
+    # Unfinished: no detail template yet (router isn't registered).
+    return templates.TemplateResponse(  # pyright: ignore[reportCallIssue]
         request=request,
     )

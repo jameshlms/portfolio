@@ -27,6 +27,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "djlint>=1.49.3",
+    "pyright>=1.1.414",
     "pytest>=9.1.1",
     "ruff>=0.16.0",
 ]
@@ -38,6 +39,13 @@ testpaths = ["tests"]
 [tool.ruff.lint.isort]
 # The local alembic/ migrations folder would otherwise make ruff treat the library as first-party.
 known-third-party = ["alembic"]
+
+[tool.pyright]
+include = ["app", "tests", "alembic"]
+pythonVersion = "3.13"
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "standard"
 
 [tool.djlint]
 profile = "jinja"

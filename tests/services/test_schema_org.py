@@ -128,3 +128,14 @@ def test_ref_needs_an_id() -> None:
 
 def test_unset_same_as_is_omitted() -> None:
     assert "sameAs" not in Person(name="J", url="u").to_json_ld()
+
+
+def test_websites_and_pages_are_creative_works() -> None:
+    site = WebSite(name="J", url="https://x/")
+    page = WebPage(name="About", url="https://x/about")
+
+    assert isinstance(site, CreativeWork)
+    assert isinstance(page, CreativeWork)
+    # Each still serializes as its own @type, not its parent's.
+    assert site.to_json_ld()["@type"] == "WebSite"
+    assert JsonLdDocument(graph=(page,)).to_json_ld()["@graph"][0]["@type"] == "WebPage"
