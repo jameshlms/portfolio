@@ -5,7 +5,7 @@
             <li>
                 <a class="nav-tab"
                    href="{{ href }}"
-                   {% if request.url.path == href.path %}aria-current="page"{% endif %}>{{ label }}</a>
+                   {% if request.url.path == href.path %}aria-current="page"{% endif %}><span class="nav-tab-label nav-tab-label--{{ route }}">{{ label }}</span></a>
             </li>
         {% endfor %}
     </ul>

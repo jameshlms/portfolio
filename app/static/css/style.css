@@ -3,6 +3,24 @@
 }
 
 
+/* Inter (variable weight), self-hosted Latin subset from @fontsource-variable/inter
+   5.3.0. Licence: static/fonts/OFL.txt. */
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-display: swap;
+    font-weight: 100 900;
+    src: url("../fonts/inter-latin-wght-normal.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Inter";
+    font-style: italic;
+    font-display: swap;
+    font-weight: 100 900;
+    src: url("../fonts/inter-latin-wght-italic.woff2") format("woff2");
+}
+
 :root {
     --primary: #f642a8;
     --secondary: #464d46;
@@ -22,6 +40,7 @@
     --error-bg: #fdecea;
     /* Smallest gap between background dots; body::before stretches it to fit the viewport. */
     --dot-min-gap: 120px;
+    --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Inputs and outputs for the body::before dot grid. The lengths are registered
@@ -58,14 +77,41 @@
     initial-value: 1;
 }
 
+/* The page scrollbar is an overlay drawn by OverlayScrollbars (js/scrollbars.js).
+   These standard properties style the native scrollbar it falls back to when
+   JavaScript is off or the OS already overlays its scrollbars. */
 html {
     height: 100%;
     background-color: var(--bg-primary);
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-active) transparent;
+}
+
+/* Overlay scrollbar theme: a translucent light handle with no track, widening on
+   hover. --os-padding-axis insets it from the top and bottom of the viewport. */
+.os-theme-site {
+    --os-size: 20px;
+    --os-padding-perpendicular: 6px;
+    --os-padding-axis: 8px;
+    --os-track-border-radius: 10px;
+    --os-track-bg: none;
+    --os-track-bg-hover: none;
+    --os-track-bg-active: none;
+    --os-handle-border-radius: 10px;
+    --os-handle-bg: rgb(255 255 255 / 0.2);
+    --os-handle-bg-hover: rgb(255 255 255 / 0.32);
+    --os-handle-bg-active: rgb(255 255 255 / 0.42);
+    --os-handle-min-size: 33px;
+    --os-handle-perpendicular-size: 70%;
+    --os-handle-perpendicular-size-hover: 100%;
+    --os-handle-perpendicular-size-active: 100%;
+    --os-handle-interactive-area-offset: 4px;
 }
 
 body {
     margin: 0;
     min-height: 100%;
+    font-family: var(--font-sans);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     display: flex;
@@ -181,6 +227,45 @@ nav {
 
 .nav-tab:active {
     transform: scale(0.95);
+}
+
+/* Page-to-page view transition: the current tab's highlight slides to the new
+   page's tab. Only named elements animate; the root is unnamed so the rest of
+   the page swaps instantly. Each label has its own name, which lifts it out of
+   the highlight's snapshot so the text stays put while the box moves under it.
+   Every route in _nav.html needs a matching label name here. */
+@media (prefers-reduced-motion: no-preference) {
+    @view-transition {
+        navigation: auto;
+    }
+}
+
+:root {
+    view-transition-name: none;
+}
+
+.nav-tab[aria-current="page"] {
+    view-transition-name: nav-highlight;
+}
+
+.nav-tab-label {
+    display: block;
+    view-transition-class: nav-label;
+}
+
+/* Transition layers stack in document order, so a label before the current tab
+   would sit under the moving highlight. Lift every label above it. */
+::view-transition-group(.nav-label) {
+    z-index: 1;
+}
+
+.nav-tab-label--home { view-transition-name: nav-label-home; }
+.nav-tab-label--about { view-transition-name: nav-label-about; }
+.nav-tab-label--contact { view-transition-name: nav-label-contact; }
+
+::view-transition-group(nav-highlight) {
+    animation-duration: 0.3s;
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .hero {
