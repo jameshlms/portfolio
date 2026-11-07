@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-overlayscrollbars-initialize>
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -18,13 +18,27 @@
             <script type="application/ld+json">{{ seo.json_ld | tojson }}</script>
         {% endif %}
         <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" />
+        <link rel="stylesheet"
+              href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.17.0/styles/overlayscrollbars.scriptingenabled.min.css"
+              integrity="sha384-daOaci5EfbjsT+Wy00u2fy+kFt4PEUTIgO5zfWQEwdB9ihvbsw2fq3b9OU7YsRm8"
+              crossorigin="anonymous" />
+        <link rel="preload"
+              href="{{ url_for('static', path='fonts/inter-latin-wght-normal.woff2') }}"
+              as="font"
+              type="font/woff2"
+              crossorigin />
         <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}" />
         <script src="https://cdn.jsdelivr.net/npm/htmx.org@4.0.0-beta6/dist/htmx.min.js"
                 integrity="sha384-6lyVbhrs13b9z7mLOpt/N6R76rtkEBWgCjAXRs/DSWyi2AMnQSs10ijWk+PI8n7W"
                 crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.17.0/browser/overlayscrollbars.browser.es6.min.js"
+                integrity="sha384-kRyrXwKzZHMPAfbXv9zgMSi+ewZbFm/fbW9VIloXFtMRQzYiPZBr+iH1w8sMSSXd"
+                crossorigin="anonymous"
+                defer></script>
+        <script src="{{ url_for('static', path='js/scrollbars.js') }}" defer></script>
         {% block head %}{% endblock %}
     </head>
-    <body hx-boost="false">
+    <body hx-boost="false" data-overlayscrollbars-initialize>
         {% include "components/_header.html" %}
         <main id="main-content">
             {% block content %}{% endblock %}

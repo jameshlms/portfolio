@@ -63,7 +63,7 @@ app/
     pages/              # index.html, about.html, contact.html
     errors/             # 404.html, 500.html
     seo/                # sitemap.xml.j2, robots.txt.j2, llms.txt.j2
-  static/               # URL-mounted at /static (css/, js/, images/, favicon.svg)
+  static/               # URL-mounted at /static (css/, js/, images/, fonts/ (Inter, OFL), favicon.svg)
 alembic/                # Migrations (env.py imports app.db.Base and app.models)
 tests/                  # Mirrors app/: routes/, services/, adapters/, deps/, plus full-app and boot tests
 scripts/hooks/          # pre-commit: djlint-reformats staged HTML
