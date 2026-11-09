@@ -104,6 +104,15 @@ class CreativeWork(Thing):
     date_modified: datetime | None = None
 
 
+class BlogPosting(CreativeWork):
+    """schema.org/BlogPosting; `headline` is what search engines show for the article."""
+
+    type: Literal["BlogPosting"] = "BlogPosting"
+    headline: str
+    keywords: tuple[str, ...] | None = None
+    main_entity_of_page: str | None = None  # URL of the page the post is the subject of
+
+
 class WebSite(CreativeWork):
     type: Literal["WebSite"] = "WebSite"
 
@@ -131,7 +140,7 @@ class BreadcrumbList(Thing):
 
 # Every type that may appear at the top of an @graph; "@type" picks the class when parsing.
 type GraphNode = Annotated[
-    WebSite | Person | WebPage | CreativeWork | BreadcrumbList,
+    WebSite | Person | WebPage | CreativeWork | BlogPosting | BreadcrumbList,
     Field(discriminator="type"),
 ]
 

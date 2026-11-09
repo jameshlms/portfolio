@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block head %}
+    {% if post.has_charts %}
+        {% include "components/_plotly.html" %}
+    {% endif %}
+{% endblock %}
+{% block content %}
+    <article class="post">
+        <div class="post__header">
+            <p class="post__back">
+                <a href="{{ url_for('blog') }}">← All posts</a>
+            </p>
+            <h1>{{ post.title }}</h1>
+            {% include "components/_post_meta.html" %}
+        </div>
+        {# Rendered from Markdown at sync time with raw HTML disabled (adapters/markdown.py). #}
+        <div class="post__body">{{ post.html | safe }}</div>
+    </article>
+{% endblock %}

@@ -1,0 +1,51 @@
+{# The blog index's tag filter and post list. htmx swaps this whole element when a
+   tag is picked; as a standalone fragment it also carries the new <title>. #}
+{% if htmx %}
+    <title>{{ seo.document_title }}</title>
+{% endif %}
+<div id="post-list"
+     class="post-list"
+     hx-target:inherited="#post-list"
+     hx-swap:inherited="outerHTML"
+     hx-push-url:inherited="true">
+    {% if index.tags %}
+        <nav class="tag-filter" aria-label="Filter posts by tag">
+            <ul>
+                {% set all_href = url_for('blog') %}
+                <li>
+                    <a class="tag"
+                       href="{{ all_href }}"
+                       hx-get="{{ all_href }}"
+                       {% if not index.tag %}aria-current="page"{% endif %}>All</a>
+                </li>
+                {% for t in index.tags %}
+                    {% set href = url_for('blog').include_query_params(tag=t.tag) %}
+                    <li>
+                        <a class="tag"
+                           href="{{ href }}"
+                           hx-get="{{ href }}"
+                           {% if index.tag == t.tag %}aria-current="page"{% endif %}>{{ t.tag }} <span class="tag__count">{{ t.posts }}</span></a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </nav>
+    {% endif %}
+    {% if index.tag %}<h2 class="post-list__heading">Posts tagged {{ index.tag }}</h2>{% endif %}
+    {% if index.posts %}
+        <ol class="post-cards">
+            {% for post in index.posts %}
+                <li>
+                    <article class="post-card">
+                        <h3 class="post-card__title">
+                            <a href="{{ url_for('blog_post', slug=post.slug) }}">{{ post.title }}</a>
+                        </h3>
+                        <p class="post-card__summary">{{ post.summary }}</p>
+                        {% include "components/_post_meta.html" %}
+                    </article>
+                </li>
+            {% endfor %}
+        </ol>
+    {% else %}
+        <p class="prose">No posts yet. Check back soon.</p>
+    {% endif %}
+</div>

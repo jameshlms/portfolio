@@ -1,6 +1,6 @@
 <nav aria-label="Main">
     <ul class="nav-tabs">
-        {% for route, label in [("home", "Home"), ("about", "About"), ("contact", "Contact")] %}
+        {% for route, label in [("home", "Home"), ("about", "About"), ("blog", "Blog"), ("contact", "Contact")] %}
             {% set href = url_for(route) %}
             <li>
                 <a class="nav-tab"

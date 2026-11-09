@@ -17,17 +17,16 @@ from fastapi.responses import HTMLResponse, Response
 from app.config import settings
 from app.deps import IsHtmx
 from app.deps.contact import ContactRateLimiter, ContactSender, ContactVerifier
-from app.paths import Page
-from app.services import seo
-from app.services.contact import (
-    ContactMessage,
+from app.domain.contact import ContactMessage, Purpose
+from app.domain.errors import (
     DeliveryFailed,
     HumanCheckFailed,
     HumanCheckUnavailable,
     InvalidContactMessage,
-    Purpose,
-    send_contact_message,
 )
+from app.paths import Page
+from app.services import seo
+from app.services.contact import send_contact_message
 from app.templates import make_templates
 
 _templates = make_templates()

@@ -1,0 +1,17 @@
+{# Published (and revised) dates and tags for one post. Expects `post`. #}
+<p class="post-meta">
+    <time datetime="{{ post.published_at.isoformat() }}">{{ post.published_at.day }} {{ post.published_at.strftime("%B %Y") }}</time>
+    {% if post.revised_at %}
+        · Updated <time datetime="{{ post.revised_at.isoformat() }}">{{ post.revised_at.day }} {{ post.revised_at.strftime("%B %Y") }}</time>
+    {% endif %}
+</p>
+{% if post.tags %}
+    <ul class="post-tags" aria-label="Tags">
+        {% for tag in post.tags %}
+            <li>
+                <a class="tag"
+                   href="{{ url_for('blog').include_query_params(tag=tag) }}">{{ tag }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}

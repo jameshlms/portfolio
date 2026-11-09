@@ -10,25 +10,14 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.db import close_engine
 from app.exception_handlers import exception_handlers
+from app.log_config import configure_logging
 from app.middleware import middleware
-from app.routes import contact, health, pages, seo
+from app.routes import blog, contact, health, pages, seo
 
 _app_dir = Path(__file__).parent
 
 
-structlog.configure(
-    processors=[
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.PositionalArgumentsFormatter(),
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.JSONRenderer(),
-    ],
-    context_class=dict,
-    logger_factory=structlog.stdlib.LoggerFactory(),
-    wrapper_class=structlog.stdlib.BoundLogger,
-    cache_logger_on_first_use=False,
-)
+configure_logging()
 
 
 logger: structlog.BoundLogger = structlog.get_logger()
@@ -54,8 +43,9 @@ app = FastAPI(
 
 app.mount("/static", StaticFiles(directory=_app_dir / "static"), name="static")
 
-# blog and projects routers are registered once their pages are built.
+# The projects router is registered once its pages are built.
 app.include_router(health.router)
 app.include_router(pages.router)
+app.include_router(blog.router)
 app.include_router(contact.router)
 app.include_router(seo.router)
