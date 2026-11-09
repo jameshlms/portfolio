@@ -5,9 +5,8 @@ from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
 # Import feature models here so autogenerate can detect them
-from app import models as _models  # noqa: F401
+from app.adapters.postgres.models import Base
 from app.config import settings
-from app.db import Base
 
 config = context.config
 

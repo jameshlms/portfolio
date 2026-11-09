@@ -1,7 +1,11 @@
 """The dependency rule, checked from the source: adapters -> ports -> domain.
 
-The domain imports only the standard library and itself. Ports import only the
-standard library and the domain. Nothing in either may reach infrastructure.
+- The domain imports only the standard library and itself.
+- Ports import only the standard library and the domain.
+- Use cases (services) import only the domain and ports.
+- The Container holds ports, so it imports only ports and the domain.
+- Adapters don't import each other; each is wired to the others through ports,
+  by app.bootstrap. Only the entry points (app.main, app.__main__) import that.
 """
 
 import ast
@@ -52,5 +56,46 @@ def test_ports_import_only_the_domain_and_the_stdlib(path: Path) -> None:
     assert bad == set()
 
 
+@pytest.mark.parametrize("path", _files("services"), ids=lambda p: p.name)
+def test_use_cases_import_only_the_domain_and_ports(path: Path) -> None:
+    bad = {m for m in _imports(path) if not _allowed(m, ("app.domain", "app.ports"))}
+
+    assert bad == set()
+
+
+def test_the_container_holds_only_ports() -> None:
+    imports = _imports(APP / "container.py")
+
+    assert {m for m in imports if not _allowed(m, ("app.domain", "app.ports"))} == set()
+
+
+# Not an adapter (it fills no port): Plotly figure -> HTML, shared by renderers.
+_SHARED_HELPERS = {"charts"}
+
+
+def _adapter(module_or_path: str) -> str:
+    """The adapter a module belongs to: its package or module under app/adapters."""
+    return module_or_path.removeprefix("app.adapters.").split(".")[0]
+
+
+_ADAPTER_FILES = sorted((APP / "adapters").rglob("*.py"))
+
+
+@pytest.mark.parametrize(
+    "path", _ADAPTER_FILES, ids=lambda p: str(p.relative_to(APP / "adapters"))
+)
+def test_adapters_do_not_import_other_adapters_or_the_bootstrap(path: Path) -> None:
+    own = path.relative_to(APP / "adapters").with_suffix("").parts[0]
+    others = {
+        m
+        for m in _imports(path)
+        if m.startswith("app.adapters.") and _adapter(m) not in {own, *_SHARED_HELPERS}
+    }
+    composition = {m for m in _imports(path) if m in {"app.bootstrap", "app.main"}}
+
+    assert others == set()
+    assert composition == set()
+
+
 def test_the_layers_have_files_to_check() -> None:
-    assert _files("domain") and _files("ports")
+    assert _files("domain") and _files("ports") and _ADAPTER_FILES

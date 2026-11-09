@@ -62,10 +62,5 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    @property
-    def contact_form_enabled(self) -> bool:
-        has_mail = bool(self.resend_api_key) or self.debug
-        return bool(self.turnstile_site_key and self.turnstile_secret_key) and has_mail
-
 
 settings = Settings()

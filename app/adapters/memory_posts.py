@@ -1,9 +1,11 @@
 """PostRepository held in memory: for tests, and for running without a database."""
 
-from collections.abc import Iterable, Sequence
+from collections.abc import AsyncIterator, Iterable, Sequence
+from contextlib import asynccontextmanager
 from datetime import datetime
 
 from app.domain.blog import Post, PostSummary, RenderedPost
+from app.ports.driven.blog import PostRepository, PostRepositoryScope
 
 
 class InMemoryPostRepository:
@@ -33,6 +35,16 @@ class InMemoryPostRepository:
         removed = tuple(sorted(self._posts.keys() - incoming.keys()))
         self._posts = incoming
         return removed
+
+
+def memory_post_repositories(repository: InMemoryPostRepository) -> PostRepositoryScope:
+    """A scope that always hands out `repository`; there's no transaction to manage."""
+
+    @asynccontextmanager
+    async def scope() -> AsyncIterator[PostRepository]:
+        yield repository
+
+    return scope
 
 
 def _is_live(post: RenderedPost, as_of: datetime) -> bool:

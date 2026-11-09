@@ -16,9 +16,8 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.adapters.memory_posts import InMemoryPostRepository
-from app.adapters.sql_posts import SqlPostRepository
-from app.db import Base
-from app.models import BlogPost
+from app.adapters.postgres.models import Base, BlogPost
+from app.adapters.postgres.posts import SqlPostRepository
 from app.ports.driven.blog import PostRepository
 from tests.blog_factories import NOW, PUBLISHED, rendered
 

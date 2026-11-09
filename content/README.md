@@ -48,10 +48,10 @@ plotly.js only when the post has a chart. The site is dark, so the `plotly_dark`
 template with a transparent background (`paper_bgcolor="rgba(0,0,0,0)"`) fits best.
 - Deleting a file removes the post on the next sync.
 
-Every deploy runs `python -m app.cli sync-posts`, which checks every file and
+Every deploy runs `python -m app sync-posts`, which checks every file and
 writes nothing if any is invalid. Run it locally against a dev database to check
 a post before pushing:
 
 ```bash
-uv run python -m app.cli sync-posts
+uv run python -m app sync-posts
 ```

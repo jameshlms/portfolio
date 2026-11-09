@@ -1,7 +1,8 @@
 import os
 
-# Settings() is built at import time and these have no defaults; set placeholders
-# so tests don't depend on a local .env. Real values in the environment win.
+# Placeholders so tests never use a developer's .env (environment variables win
+# over .env). Nothing in the tests connects to DATABASE_URL: app tests run on a
+# Container of fakes, and the Postgres tests use TEST_DATABASE_URL.
 _REQUIRED_SETTINGS = {
     "GITHUB_TOKEN": "test",
     "GITHUB_CLIENT_ID": "test",
@@ -19,10 +20,13 @@ for key, value in _REQUIRED_SETTINGS.items():
 from collections.abc import Iterator
 
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
-from app.adapters.memory_posts import InMemoryPostRepository
-from app.deps.blog import get_post_repository
-from app.main import app
+from app.adapters.http.app import create_app
+from app.adapters.markdown import MarkdownItRenderer
+from app.adapters.memory_posts import InMemoryPostRepository, memory_post_repositories
+from app.container import Container
 
 
 @pytest.fixture
@@ -31,14 +35,28 @@ def anyio_backend() -> str:
     return "asyncio"
 
 
-@pytest.fixture(autouse=True)
-def posts() -> Iterator[InMemoryPostRepository]:
-    """The blog's repository for every app test: empty unless a test adds posts.
+@pytest.fixture
+def posts() -> InMemoryPostRepository:
+    """The blog's repository: empty unless a test adds posts."""
+    return InMemoryPostRepository()
 
-    The DATABASE_URL above is a placeholder, so no test may reach Postgres
-    through the app.
-    """
-    repository = InMemoryPostRepository()
-    app.dependency_overrides[get_post_repository] = lambda: repository
-    yield repository
-    app.dependency_overrides.pop(get_post_repository, None)
+
+@pytest.fixture
+def container(posts: InMemoryPostRepository) -> Container:
+    """Fakes for every port; the contact form is off (no verifier or sender)."""
+    return Container(
+        posts=memory_post_repositories(posts), renderer=MarkdownItRenderer()
+    )
+
+
+@pytest.fixture
+def app(container: Container) -> FastAPI:
+    """A fresh app per test, so no state (rate limits, overrides) leaks between tests."""
+    return create_app(container)
+
+
+@pytest.fixture
+def client(app: FastAPI) -> Iterator[TestClient]:
+    # TrustedHostMiddleware rejects TestClient's default "testserver" host.
+    with TestClient(app, base_url="http://localhost") as c:
+        yield c

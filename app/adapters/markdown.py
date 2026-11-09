@@ -21,9 +21,9 @@ from markdown_it.renderer import RendererHTML
 from markdown_it.token import Token
 from markdown_it.utils import OptionsDict
 
+from app.adapters.charts import render_chart
 from app.domain.blog import PostSource, RenderedBody
 from app.domain.errors import InvalidPost
-from app.services.charts import render_chart
 
 _CHART_FENCE = "plotly"
 

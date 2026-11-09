@@ -1,6 +1,7 @@
 """What the blog needs from outside: somewhere to keep posts, a Markdown renderer."""
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from contextlib import AbstractAsyncContextManager
 from datetime import datetime
 from typing import Protocol
 
@@ -26,3 +27,8 @@ class PostRepository(Protocol):
     async def replace_all(self, posts: Sequence[RenderedPost]) -> tuple[str, ...]:
         """Store exactly these posts, drafts included; returns the slugs removed."""
         ...
+
+
+# Opens a PostRepository for one unit of work: `async with posts() as repository:`.
+# Writes inside the block are kept only if it exits without an error.
+type PostRepositoryScope = Callable[[], AbstractAsyncContextManager[PostRepository]]
