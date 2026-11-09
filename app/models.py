@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import String, Text, false, func
+from sqlalchemy import Index, String, Text, false, func
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -11,6 +11,10 @@ class BlogPost(Base):
     """Mirrors alembic revision 0001. Rows are written by `app.cli sync-posts`."""
 
     __tablename__ = "blog_posts"
+    __table_args__ = (
+        # Full-text search; search_vector is filled by a trigger (see migration 0001).
+        Index("ix_blog_posts_search_vector", "search_vector", postgresql_using="gin"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     slug: Mapped[str] = mapped_column(String(200), unique=True, index=True)

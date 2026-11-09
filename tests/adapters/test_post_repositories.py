@@ -31,7 +31,11 @@ needs_db = pytest.mark.skipif(not _DB_URL, reason="TEST_DATABASE_URL is not set"
 
 
 @pytest.fixture
-async def session() -> AsyncIterator[AsyncSession]:
+async def session() -> AsyncIterator[AsyncSession | None]:
+    """A session in a transaction that's rolled back; None without a database."""
+    if not _DB_URL:
+        yield None
+        return
     engine = create_async_engine(_DB_URL)
     async with engine.connect() as conn:
         transaction = await conn.begin()
@@ -40,12 +44,16 @@ async def session() -> AsyncIterator[AsyncSession]:
     await engine.dispose()
 
 
+# Depends on `session` directly: anyio can't start an async fixture from
+# request.getfixturevalue() while the test's event loop is running.
 @pytest.fixture(params=["memory", pytest.param("sql", marks=needs_db)])
-async def repository(request: pytest.FixtureRequest) -> AsyncIterator[PostRepository]:
+def repository(
+    request: pytest.FixtureRequest, session: AsyncSession | None
+) -> PostRepository:
     if request.param == "memory":
-        yield InMemoryPostRepository()
-    else:
-        yield SqlPostRepository(request.getfixturevalue("session"))
+        return InMemoryPostRepository()
+    assert session is not None
+    return SqlPostRepository(session)
 
 
 # --- Contract ------------------------------------------------------------------
@@ -134,9 +142,9 @@ async def test_unchanged_posts_are_not_rewritten(session: AsyncSession) -> None:
         [rendered("same"), replace(rendered("edited"), html="<p>new</p>")]
     )
 
-    rows = dict(
-        (await session.execute(select(BlogPost.slug, BlogPost.updated_at))).tuples()
-    )
+    # .all(), not .tuples(): a Result has keys(), so dict() would treat it as a mapping.
+    result = await session.execute(select(BlogPost.slug, BlogPost.updated_at))
+    rows = {slug: updated_at for slug, updated_at in result.all()}
     assert rows["same"].year == 2000
     assert rows["edited"].year > 2000
 
