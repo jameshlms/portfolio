@@ -16,7 +16,10 @@ from enum import StrEnum
 from types import MappingProxyType
 from typing import Protocol
 
-from app.services.errors import HumanCheckFailed, InvalidContactMessage
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
+from pydantic_core import PydanticCustomError
+
+from app.services.errors import HumanCheckFailed, InvalidContactMessage, field_errors
 
 NAME_MAX = 100
 REPLY_TO_MAX = 254
@@ -51,8 +54,15 @@ _PURPOSE_LABELS: Mapping[Purpose, str] = MappingProxyType(
 )
 
 
-@dataclass(frozen=True)
-class ContactMessage:
+class ContactMessage(BaseModel):
+    """A contact form submission that passed every rule, normalised.
+
+    Each validator raises the message the visitor sees; `parse` turns them into
+    InvalidContactMessage, keyed by field, all at once.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
     name: str
     reply_to: str
     purpose: Purpose
@@ -68,36 +78,61 @@ class ContactMessage:
         cls, *, name: str, reply_to: str, purpose: str, message: str
     ) -> ContactMessage:
         """Normalise raw form input and check every rule, reporting all failures at once."""
+        data = {
+            "name": name,
+            "reply_to": reply_to,
+            "purpose": purpose,
+            "message": message,
+        }
+        try:
+            return cls.model_validate(data)
+        except ValidationError as e:
+            raise InvalidContactMessage(field_errors(e)) from e
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _name(cls, value: str) -> str:
         name = " ".join(
-            name.split()
-        )  # also strips newlines, which would end up in the subject
-        reply_to = reply_to.strip()
-        message = message.replace("\r\n", "\n").strip()
-        errors: dict[str, str] = {}
-
+            value.split()
+        )  # also strips newlines, which would reach the subject
         if not name:
-            errors["name"] = "Enter your name."
-        elif len(name) > NAME_MAX:
-            errors["name"] = f"Keep your name under {NAME_MAX} characters."
+            raise _invalid("Enter your name.")
+        if len(name) > NAME_MAX:
+            raise _invalid(f"Keep your name under {NAME_MAX} characters.")
+        return name
 
+    @field_validator("reply_to", mode="before")
+    @classmethod
+    def _reply_to(cls, value: str) -> str:
+        reply_to = value.strip()
         if not reply_to:
-            errors["reply_to"] = "Enter an email address or phone number."
-        elif len(reply_to) > REPLY_TO_MAX or not _is_email_or_phone(reply_to):
-            errors["reply_to"] = "Enter a valid email address or phone number."
+            raise _invalid("Enter an email address or phone number.")
+        if len(reply_to) > REPLY_TO_MAX or not _is_email_or_phone(reply_to):
+            raise _invalid("Enter a valid email address or phone number.")
+        return reply_to
 
-        if purpose not in Purpose:
-            errors["purpose"] = "Choose what your message is about."
+    @field_validator("purpose", mode="before")
+    @classmethod
+    def _purpose(cls, value: str) -> Purpose:
+        if value not in Purpose:
+            raise _invalid("Choose what your message is about.")
+        return Purpose(value)
 
+    @field_validator("message", mode="before")
+    @classmethod
+    def _message(cls, value: str) -> str:
+        message = value.replace("\r\n", "\n").strip()
         if len(message) < MESSAGE_MIN:
-            errors["message"] = f"Write at least {MESSAGE_MIN} characters."
-        elif len(message) > MESSAGE_MAX:
-            errors["message"] = f"Keep your message under {MESSAGE_MAX} characters."
+            raise _invalid(f"Write at least {MESSAGE_MIN} characters.")
+        if len(message) > MESSAGE_MAX:
+            raise _invalid(f"Keep your message under {MESSAGE_MAX} characters.")
+        return message
 
-        if errors:
-            raise InvalidContactMessage(errors)
-        return cls(
-            name=name, reply_to=reply_to, purpose=Purpose(purpose), message=message
-        )
+
+def _invalid(message: str) -> PydanticCustomError:
+    """A validation error whose message is already what the visitor should read."""
+    # The template must be a literal; the message travels in the error's context.
+    return PydanticCustomError("contact_field", "{message}", {"message": message})
 
 
 def _is_email_or_phone(value: str) -> bool:

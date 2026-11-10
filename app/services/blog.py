@@ -20,16 +20,31 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from types import MappingProxyType
-from typing import Any, Protocol
+from typing import Annotated, Any, Protocol
 
-from app.services.errors import InvalidPost, InvalidPosts, PostNotFound, UnknownTag
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+)
+from pydantic_core import PydanticCustomError
+
+from app.services.errors import (
+    InvalidPost,
+    InvalidPosts,
+    PostNotFound,
+    UnknownTag,
+    field_errors,
+)
 
 SLUG_MAX = 200
 TITLE_MAX = 500
 SUMMARY_MAX = 300  # long enough for a meta description, short enough to stay one
 
 _SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
-_FIELDS = frozenset({"title", "summary", "tags", "published", "updated"})
 
 
 # --- Records -------------------------------------------------------------------
@@ -135,6 +150,89 @@ class PostRepository(Protocol):
 # --- Rules ---------------------------------------------------------------------
 
 
+def _collapse(value: object) -> object:
+    """Collapse runs of whitespace (including newlines) in a string to one space."""
+    return " ".join(value.split()) if isinstance(value, str) else value
+
+
+def _moment(value: object) -> datetime | None:
+    """A date or datetime from front matter, in UTC. Dates mean midnight UTC.
+
+    Strict on purpose: Pydantic alone would read a YAML integer as a Unix timestamp.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value)
+        except ValueError:
+            value = None
+    if isinstance(value, datetime):  # before date: datetime is a date subclass
+        return (
+            value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+        )
+    if isinstance(value, date):
+        return datetime(value.year, value.month, value.day, tzinfo=UTC)
+    raise PydanticCustomError(
+        "date_format", "Use a date like 2026-11-07 or 2026-11-07T09:30:00Z."
+    )
+
+
+class FrontMatter(BaseModel):
+    """A post's YAML header, checked: the keys a post may set, and their rules."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    title: Annotated[
+        str, BeforeValidator(_collapse), Field(min_length=1, max_length=TITLE_MAX)
+    ]
+    summary: Annotated[
+        str, BeforeValidator(_collapse), Field(min_length=1, max_length=SUMMARY_MAX)
+    ]
+    tags: tuple[str, ...] = ()
+    published: Annotated[datetime | None, BeforeValidator(_moment)] = (
+        None  # None: draft
+    )
+    updated: Annotated[datetime | None, BeforeValidator(_moment)] = None
+
+    @field_validator("tags", mode="after")
+    @classmethod
+    def _tags_are_slugs(cls, tags: tuple[str, ...]) -> tuple[str, ...]:
+        tags = tuple(
+            dict.fromkeys(normalize_tag(t) for t in tags)
+        )  # dedupe, keep order
+        if bad := [t for t in tags if not _is_slug(t)]:
+            raise PydanticCustomError(
+                "tag_format",
+                "Tags are lowercase words joined by hyphens; not {bad}.",
+                {"bad": ", ".join(bad)},
+            )
+        return tags
+
+
+_UNKNOWN_FIELD = (
+    f"Unknown field. Allowed: {', '.join(sorted(FrontMatter.model_fields))}."
+)
+_TAG_LIST = "A list of tags, e.g. [python, data-engineering]."
+# Pydantic's error types -> the CLI's wording (see errors.field_errors).
+_FRONT_MATTER_MESSAGES: Mapping[str, str] = MappingProxyType(
+    {
+        "missing": "Required.",
+        "string_type": "Required.",
+        # With a BeforeValidator on the field, Pydantic reports the generic length
+        # types (too_short / too_long) rather than the string_ ones.
+        "string_too_short": "Required.",
+        "too_short": "Required.",
+        "string_too_long": "At most {max_length} characters.",
+        "too_long": "At most {max_length} characters.",
+        "extra_forbidden": _UNKNOWN_FIELD,
+        "invalid_key": _UNKNOWN_FIELD,  # a non-string YAML key, e.g. `2026: x`
+        "tags.tuple_type": _TAG_LIST,
+        "tags.string_type": _TAG_LIST,
+    }
+)
+
+
 def parse_post(
     slug: str,
     metadata: Mapping[Any, object],  # parsed YAML: keys needn't be strings
@@ -147,38 +245,33 @@ def parse_post(
     the renderer checks the ones the body embeds.
     """
     errors: dict[str, str] = {}
-
     if not _is_slug(slug):
         errors["slug"] = (
             f"Use lowercase letters, digits and single hyphens, at most {SLUG_MAX} "
             "characters (it's the file name)."
         )
-    # str(): YAML keys needn't be strings (`2026: x`), and mixed types don't sort.
-    for field in sorted(str(k) for k in metadata.keys() - _FIELDS):
-        errors[field] = f"Unknown field. Allowed: {', '.join(sorted(_FIELDS))}."
-
-    title = _text(metadata.get("title"), "title", TITLE_MAX, errors)
-    summary = _text(metadata.get("summary"), "summary", SUMMARY_MAX, errors)
-    tags = _tags(metadata.get("tags", ()), errors)
-    published_at = _moment(metadata.get("published"), "published", errors)
-    revised_at = _moment(metadata.get("updated"), "updated", errors)
-
-    if revised_at and published_at is None:
-        errors["updated"] = "A draft can't have an updated date; set published first."
-    elif revised_at and published_at and revised_at < published_at:
-        errors["updated"] = "Must be on or after the published date."
     if not markdown.strip():
         errors["body"] = "The post has no content."
 
+    try:
+        front = FrontMatter.model_validate(dict(metadata))
+    except ValidationError as e:
+        raise InvalidPost(slug, errors | field_errors(e, _FRONT_MATTER_MESSAGES)) from e
+
+    if front.updated and front.published is None:
+        errors["updated"] = "A draft can't have an updated date; set published first."
+    elif front.updated and front.published and front.updated < front.published:
+        errors["updated"] = "Must be on or after the published date."
     if errors:
         raise InvalidPost(slug, errors)
+
     return PostSource(
         slug=slug,
-        title=title,
-        summary=summary,
-        tags=tags,
-        published_at=published_at,
-        revised_at=revised_at,
+        title=front.title,
+        summary=front.summary,
+        tags=front.tags,
+        published_at=front.published,
+        revised_at=front.updated,
         markdown=markdown,
         figures=MappingProxyType(dict(figures)),
     )
@@ -190,50 +283,6 @@ def normalize_tag(tag: str) -> str:
 
 def _is_slug(value: str) -> bool:
     return len(value) <= SLUG_MAX and _SLUG.fullmatch(value) is not None
-
-
-def _text(value: object, field: str, limit: int, errors: dict[str, str]) -> str:
-    if not isinstance(value, str) or not value.strip():
-        errors[field] = "Required."
-        return ""
-    text = " ".join(value.split())
-    if len(text) > limit:
-        errors[field] = f"At most {limit} characters."
-    return text
-
-
-def _tags(value: object, errors: dict[str, str]) -> tuple[str, ...]:
-    if not isinstance(value, list | tuple) or not all(
-        isinstance(t, str) for t in value
-    ):
-        errors["tags"] = "A list of tags, e.g. [python, data-engineering]."
-        return ()
-    tags = tuple(dict.fromkeys(normalize_tag(t) for t in value))  # dedupe, keep order
-    if bad := [t for t in tags if not _is_slug(t)]:
-        errors["tags"] = (
-            f"Tags are lowercase words joined by hyphens; not {', '.join(bad)}."
-        )
-    return tags
-
-
-def _moment(value: object, field: str, errors: dict[str, str]) -> datetime | None:
-    """A date or datetime from front matter, in UTC. Dates mean midnight UTC."""
-    if value is None:
-        return None
-    if isinstance(value, str):
-        try:
-            value = datetime.fromisoformat(value)
-        except ValueError:
-            errors[field] = "Use a date like 2026-11-07 or 2026-11-07T09:30:00Z."
-            return None
-    if isinstance(value, datetime):  # before date: datetime is a date subclass
-        return (
-            value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
-        )
-    if isinstance(value, date):
-        return datetime(value.year, value.month, value.day, tzinfo=UTC)
-    errors[field] = "Use a date like 2026-11-07 or 2026-11-07T09:30:00Z."
-    return None
 
 
 def build_index(posts: Sequence[PostSummary], tag: str | None = None) -> BlogIndex:

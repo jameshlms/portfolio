@@ -1,6 +1,6 @@
 """Every business-rule error in the portfolio, grouped by feature.
 
-Pure: no framework imports. The feature modules (services/blog.py, contact.py)
+No web or database framework imports. The feature modules (services/blog.py, contact.py)
 raise these for broken rules, and driven adapters translate infrastructure
 failures into them. The edges (exception_handlers, the CLI) catch them and
 translate, e.g. to an HTTP status or an exit code.
@@ -11,9 +11,30 @@ at once.
 from collections.abc import Mapping, Sequence
 from types import MappingProxyType
 
+from pydantic import ValidationError
+
 
 class DomainError(Exception):
     """Base for every business-rule error."""
+
+
+def field_errors(
+    error: ValidationError, messages: Mapping[str, str] = MappingProxyType({})
+) -> dict[str, str]:
+    """Pydantic's errors as one message per top-level field, for an Invalid* error.
+
+    `messages` replaces Pydantic's wording, looked up by "field.error_type" and then
+    "error_type", and formatted with the error's context (e.g. {max_length}).
+    Errors raised with PydanticCustomError already carry the final message.
+    """
+    by_field: dict[str, list[str]] = {}
+    for e in error.errors(include_url=False):
+        field = str(e["loc"][0]) if e["loc"] else "input"
+        template = messages.get(f"{field}.{e['type']}") or messages.get(e["type"])
+        text = template.format(**(e.get("ctx") or {})) if template else e["msg"]
+        if text not in by_field.setdefault(field, []):
+            by_field[field].append(text)
+    return {field: " ".join(texts) for field, texts in by_field.items()}
 
 
 def _describe(errors: Mapping[str, str]) -> str:
