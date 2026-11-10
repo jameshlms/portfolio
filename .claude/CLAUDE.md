@@ -34,7 +34,8 @@ Flat layers, dependencies pointing inward: **routes / cli → services → model
 ```
 app/
   main.py               # Composition root: lifespan, middleware, static mount, router includes
-  config.py             # pydantic-settings Settings; every secret is optional (see .env.example)
+  config.py             # pydantic-settings Settings; every secret is optional (see .env.example);
+                        #   errors hide values; PORTFOLIO_ENV_FILE picks the dotenv file
   paths.py              # Every URL path: Page, RootFile, Internal enums + item_path()
   templates.py          # make_templates(): Jinja2Templates over app/templates, StrictUndefined,
                         #   globals base_url and site_name
@@ -124,7 +125,7 @@ uv run pyright                           # type check
 git config core.hooksPath scripts/hooks  # enable the djlint pre-commit hook
 ```
 
-Copy `.env.example` to `.env` for local settings; the app runs with it empty.
+Copy `.env.example` to `.env` for local settings; the app runs with it empty. An unknown key in `.env` stops the app at startup (it's likely a typo), and the error names the key but never its value (`hide_input_in_errors`). Tests never read `.env`: `tests/conftest.py` sets `PORTFOLIO_ENV_FILE=""` before importing the app, so they run the same on every machine; set it to a path to load a different dotenv file.
 
 ## Deployment
 
