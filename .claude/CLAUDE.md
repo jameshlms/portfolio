@@ -65,7 +65,7 @@ app/
                         #   HumanVerifier, MailSender; send_contact_message
     charts.py           # Plotly figure -> embeddable HTML
     seo.py              # PAGE_META (routed pages only), PublishedPage, SEOContext +
-                        #   for_page / for_error_page / for_blog_index / for_post / for_project,
+                        #   for_page / for_error_page / for_blog_index / for_post,
                         #   this site's schema.org nodes, published_posts, sitemap_urls,
                         #   llms_document
     schema_org.py       # schema.org node models; JsonLdDocument round-trips JSON-LD
