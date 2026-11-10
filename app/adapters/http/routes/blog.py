@@ -34,7 +34,7 @@ async def blog(
         raise HTTPException(status_code=404) from e
 
     context = {"index": index, "seo": seo.for_blog_index(index.tag), "htmx": htmx}
-    template = "components/_post_list.html" if htmx else "pages/blog.html"
+    template = "fragments/_post_list.html" if htmx else "pages/blog.html"
     return _templates.TemplateResponse(request, template, context)
 
 

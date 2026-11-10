@@ -72,7 +72,7 @@ def _render(
     if htmx:
         return _templates.TemplateResponse(
             request,
-            "components/_contact_form.html",
+            "fragments/_contact_form.html",
             _form_context(form, site_key),
             status_code=status_code,
         )

@@ -1,12 +1,10 @@
-from pathlib import Path
-
 from fastapi import APIRouter, Request
 from starlette.responses import HTMLResponse
 
 from app.adapters.http.deps import IsHtmx
 from app.adapters.http.templates import make_templates
 
-templates = make_templates(Path(__file__).parent / "templates")
+templates = make_templates()
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -15,7 +13,7 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 async def projects(request: Request, htmx: IsHtmx):
     return templates.TemplateResponse(
         request=request,
-        name="partials/project_grid.html" if htmx else "pages/project_list.html",
+        name="fragments/_project_grid.html" if htmx else "pages/project_list.html",
     )
 
 
