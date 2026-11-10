@@ -29,8 +29,6 @@ from app.templates import make_templates
 TEMPLATES = APP_DIR / "templates"
 _FOLDERS = {"pages", "errors", "seo", "components", "fragments"}
 _RENDERABLE = ("pages/", "errors/", "seo/", "fragments/")
-# Routers not registered yet (see adapters/http/app.py): their templates may not exist.
-_UNFINISHED = {"projects.py"}
 
 _env = make_templates().env
 
@@ -76,8 +74,6 @@ def test_python_renders_only_pages_errors_seo_and_fragments(name: str) -> None:
 
 @pytest.mark.parametrize("name", sorted(_RENDERED), ids=str)
 def test_every_rendered_template_exists(name: str) -> None:
-    if _RENDERED[name].name in _UNFINISHED:
-        pytest.skip("router not registered yet")
     assert (TEMPLATES / name).is_file()
 
 
