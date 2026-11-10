@@ -1,3 +1,4 @@
+import os
 from typing import Annotated
 from urllib.parse import urlsplit, urlunsplit
 
@@ -52,7 +53,15 @@ class Settings(BaseSettings):
     debug: bool = False
     database_url: _DatabaseUrl | None = None
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        # PORTFOLIO_ENV_FILE picks the dotenv file; empty reads none (the tests set it,
+        # so they never depend on a developer's .env). Environment variables always apply.
+        env_file=os.environ.get("PORTFOLIO_ENV_FILE", ".env") or None,
+        env_file_encoding="utf-8",
+        # A bad setting is reported by name, never by value: these errors reach test
+        # output and deploy logs, and the values are often secrets.
+        hide_input_in_errors=True,
+    )
 
     @property
     def contact_form_enabled(self) -> bool:

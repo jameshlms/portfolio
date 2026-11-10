@@ -1,12 +1,11 @@
 import os
 
-# A placeholder so tests never pick up a developer's .env DATABASE_URL (environment
-# variables win over .env). No app test connects to it: the blog's repository is
-# overridden below, and the Postgres tests use TEST_DATABASE_URL.
-os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
+# Before the app is imported: its settings must not read a developer's .env, so the
+# tests run the same everywhere (see app/config.py). Environment variables still apply.
+os.environ["PORTFOLIO_ENV_FILE"] = ""
 
 
-# Imported after the settings above are in place.
+# Imported after PORTFOLIO_ENV_FILE is in place.
 from collections.abc import Iterator
 
 import pytest
