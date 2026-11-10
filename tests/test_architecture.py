@@ -6,6 +6,8 @@
 - The Container holds ports, so it imports only ports and the domain.
 - Adapters don't import each other; each is wired to the others through ports,
   by app.bootstrap. Only the entry points (app.main, app.__main__) import that.
+- HTTP routes reach the hexagon through use cases: they import services, never
+  port types (the ports they pass along arrive typed, from app.adapters.http.deps).
 """
 
 import ast
@@ -97,5 +99,17 @@ def test_adapters_do_not_import_other_adapters_or_the_bootstrap(path: Path) -> N
     assert composition == set()
 
 
+_ROUTE_FILES = sorted((APP / "adapters" / "http" / "routes").glob("*.py"))
+
+
+@pytest.mark.parametrize("path", _ROUTE_FILES, ids=lambda p: p.name)
+def test_routes_use_use_cases_not_ports(path: Path) -> None:
+    ports = {
+        m for m in _imports(path) if m == "app.ports" or m.startswith("app.ports.")
+    }
+
+    assert ports == set()
+
+
 def test_the_layers_have_files_to_check() -> None:
-    assert _files("domain") and _files("ports") and _ADAPTER_FILES
+    assert _files("domain") and _files("ports") and _ADAPTER_FILES and _ROUTE_FILES

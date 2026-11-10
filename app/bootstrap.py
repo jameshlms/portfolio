@@ -13,6 +13,7 @@ from app.adapters.memory_posts import InMemoryPostRepository, memory_post_reposi
 from app.adapters.postgres.engine import make_engine, make_sessions
 from app.adapters.postgres.posts import sql_post_repositories
 from app.adapters.resend import ResendMailSender
+from app.adapters.system_clock import SystemClock
 from app.adapters.turnstile import TurnstileVerifier
 from app.config import Settings
 from app.config import settings as default_settings
@@ -42,6 +43,8 @@ def bootstrap(settings: Settings = default_settings) -> Container:
     return Container(
         posts=posts,
         renderer=MarkdownItRenderer(),
+        clock=SystemClock(),
+        posts_are_durable=engine is not None,
         human_verifier=_human_verifier(settings, http),
         mail_sender=_mail_sender(settings, http),
         close=close,

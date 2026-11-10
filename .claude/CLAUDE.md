@@ -27,9 +27,9 @@ Be sure to use any linked documentation for up-to-date information.
 Simple hexagonal (ports and adapters), grouped by feature inside each layer. Dependencies point inward: **adapters → ports → domain**, with use cases in between. `tests/test_architecture.py` enforces the import rules.
 
 - **`domain/`**: records, business rules and every domain error. Plain frozen dataclasses and functions; imports only the standard library and itself.
-- **`ports/driven/`**: the `Protocol`s the use cases need from infrastructure (`PostRepository` and its `PostRepositoryScope`, `MarkdownRenderer`, `HumanVerifier`, `MailSender`). Imports only the domain.
-- **`services/`**: thin async use cases (`send_contact_message`, `render_posts`, `sync_posts`, `blog_index`, `get_post`) that call domain rules and ports. There are no driving-port Protocols: each use case has one implementation.
-- **`adapters/`**: driving adapters (`http/` the website, `cli/` the command line) and driven ones (`postgres/`, `turnstile`, `resend`, `log_mail`, `markdown`, `memory_posts`). Adapters never import each other (the `charts` helper is shared); they meet only through ports.
+- **`ports/driven/`**: the `Protocol`s the use cases need from infrastructure (`PostRepository` and its `PostRepositoryScope`, `MarkdownRenderer`, `HumanVerifier`, `MailSender`, `Clock`). Imports only the domain.
+- **`services/`**: thin async use cases (`send_contact_message`, `render_posts`, `sync_posts`, `blog_index`, `get_post`, `list_published_posts`) that call domain rules and ports. Driving adapters always go through these; routes never import a port. Whether a post is published is judged at `Clock.now()`, never at a time a route picks. There are no driving-port Protocols: each use case has one implementation.
+- **`adapters/`**: driving adapters (`http/` the website, `cli/` the command line) and driven ones (`postgres/`, `turnstile`, `resend`, `log_mail`, `markdown`, `memory_posts`, `system_clock`). Adapters never import each other (the `charts` helper is shared); they meet only through ports.
 - **Composition**: `container.py` defines `Container`, which port is filled by which object, holding only port types. `bootstrap.py` is the only module that builds concrete adapters: settings in, `Container` out. The entry points call it: `main.py` (`app = create_app(bootstrap())`, for uvicorn) and `__main__.py` (`python -m app <command>`). Tests skip bootstrap and build a `Container` of fakes.
 
 ```
@@ -38,7 +38,8 @@ app/
   __main__.py           # CLI entry: python -m app <command> (see adapters/cli)
   bootstrap.py          # Settings -> Container: picks Postgres or in-memory posts, Turnstile,
                         #   Resend / log mailer; owns the HTTP client and DB pool (Container.close)
-  container.py          # Container: the ports each driving adapter is given
+  container.py          # Container: the ports each driving adapter is given, plus
+                        #   posts_are_durable (False for in-memory posts)
   config.py             # pydantic-settings Settings; every secret is optional (see .env.example)
   log_config.py         # configure_logging(): structlog, console in DEBUG, JSON otherwise
   domain/               # Pure business code; imports only the stdlib and app.domain
@@ -49,9 +50,10 @@ app/
     driven/             # What the use cases need from outside; imports only app.domain
       contact.py        # HumanVerifier, MailSender
       blog.py           # PostRepository, PostRepositoryScope, MarkdownRenderer
+      clock.py          # Clock
   services/             # Use cases: thin async orchestration
     contact.py          # send_contact_message
-    blog.py             # render_posts, sync_posts, blog_index, get_post
+    blog.py             # render_posts, sync_posts, blog_index, get_post, list_published_posts
   adapters/
     http/               # Driving: the website
       app.py            # create_app(container): middleware, handlers, static, routers; closes
@@ -60,7 +62,7 @@ app/
       templates.py      # make_templates(): Jinja2 over http/templates, StrictUndefined, globals
       middleware.py     # TrustedHost, Vary: HX-Request, GZip (AdminAuthMiddleware defined, unregistered)
       exception_handlers.py  # HTTPException -> errors/404.html or 500.html (JSON under /api/)
-      deps/             # FastAPI dependencies: AppContainer (the Container), IsHtmx; contact.py
+      deps/             # FastAPI dependencies: AppContainer, AppClock, IsHtmx; contact.py
                         #   and blog.py take their ports from the container; rate_limit.py
       routes/           # Thin handlers, one router per area: pages, blog, contact, seo, health
                         #   (projects.py in progress, not registered)
@@ -76,12 +78,14 @@ app/
     resend.py, log_mail.py  # MailSender (production / development)
     markdown.py         # MarkdownRenderer (markdown-it + `plotly` chart fences)
     memory_posts.py     # In-memory PostRepository: no-database mode and tests
+    system_clock.py     # Clock (system time, UTC)
     charts.py           # Plotly figure -> embeddable HTML (shared helper, not an adapter)
 content/                # Site content in git: blog/*.md (see content/README.md)
 alembic/                # Migrations (env.py imports app.adapters.postgres.models.Base)
 tests/                  # Mirrors app/: domain/ (pure), services/ (fake ports), adapters/ (http/
                         #   through create_app, cli, postgres contract tests), architecture and
-                        #   boot tests. conftest builds a Container of fakes and a fresh app per test
+                        #   boot tests. conftest builds a Container of fakes (clock fixed at
+                        #   blog_factories.NOW) and a fresh app per test
 scripts/hooks/          # pre-commit: djlint-reformats staged HTML
 ```
 
@@ -98,7 +102,7 @@ scripts/hooks/          # pre-commit: djlint-reformats staged HTML
 - **Domain errors** all live in `domain/errors.py`, under `DomainError`, with a base per feature (`ContactError`, `BlogError`). A test checks that every class there derives from `DomainError`. The domain, use cases and driven adapters raise them (e.g. Resend raises `DeliveryFailed`). Routes and the CLI catch them and translate (e.g. `PostNotFound` -> 404). Never raise `HTTPException` or an infrastructure error past a port.
 - **Errors**: `HTTPException` propagates to `app.adapters.http.exception_handlers.http_exception_handler`, which renders `errors/404.html` or `errors/500.html` with a `noindex` SEO context. Paths under `/api/` get JSON instead.
 - **Root-level crawler files** (sitemap.xml, robots.txt, llms.txt) are rendered from `templates/seo/*.j2` by `routes/seo.py`. `sitemap.xml.j2` turns on autoescape explicitly, because `.j2` files aren't autoescaped by default.
-- **Database is optional at runtime**: without `DATABASE_URL`, bootstrap gives the blog an empty in-memory repository, so every page and the sitemap still render (the engine doesn't connect until the first query anyway). `sync-posts` refuses to run without it. Queries live in driven adapters behind a port and return domain dataclasses, not ORM rows.
+- **Database is optional at runtime**: without `DATABASE_URL`, bootstrap gives the blog an empty in-memory repository, so every page and the sitemap still render (the engine doesn't connect until the first query anyway). `sync-posts` refuses to run without it (`Container.posts_are_durable` is False). Queries live in driven adapters behind a port and return domain dataclasses, not ORM rows.
 - **Unfinished features** can be merged: keep the router out of `adapters/http/app.py`, the page out of `PAGE_META`, and the link out of the nav until it works.
 - **Type-checking exceptions are file-level and explained**: `schema_org.py` turns off `reportIncompatibleVariableOverride` (each subclass narrows `type` for the discriminator); `adapters/postgres/projects.py` turns off undefined-variable checks until the `Project*` model exists. Don't add new exceptions without a comment saying why.
 - **Immutability**: prefer frozen dataclasses / frozen Pydantic models and tuples for data passed between layers.

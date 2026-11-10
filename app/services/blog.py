@@ -2,15 +2,23 @@
 
 Thin orchestration over the domain (app.domain.blog) and the driven ports
 (app.ports.driven.blog). The CLI reads post files and calls `render_posts` then
-`sync_posts`; the blog routes call `blog_index` and `get_post`.
+`sync_posts`; the blog routes call `blog_index` and `get_post`, and the crawler files
+`list_published_posts`. "Published" is judged at `clock.now()`.
 """
 
 from collections.abc import Iterable, Sequence
-from datetime import datetime
 
-from app.domain.blog import BlogIndex, Post, PostSource, RenderedPost, build_index
+from app.domain.blog import (
+    BlogIndex,
+    Post,
+    PostSource,
+    PostSummary,
+    RenderedPost,
+    build_index,
+)
 from app.domain.errors import InvalidPost, InvalidPosts, PostNotFound
 from app.ports.driven.blog import MarkdownRenderer, PostRepository
+from app.ports.driven.clock import Clock
 
 
 def render_posts(
@@ -40,16 +48,23 @@ async def sync_posts(
     return await repository.replace_all(posts)
 
 
+async def list_published_posts(
+    repository: PostRepository, clock: Clock
+) -> tuple[PostSummary, ...]:
+    """Every published post, newest first."""
+    return await repository.published(clock.now())
+
+
 async def blog_index(
-    repository: PostRepository, as_of: datetime, tag: str | None = None
+    repository: PostRepository, clock: Clock, tag: str | None = None
 ) -> BlogIndex:
     """Published posts, optionally only those tagged `tag`. Raises UnknownTag."""
-    return build_index(await repository.published(as_of), tag)
+    return build_index(await repository.published(clock.now()), tag)
 
 
-async def get_post(repository: PostRepository, slug: str, as_of: datetime) -> Post:
+async def get_post(repository: PostRepository, clock: Clock, slug: str) -> Post:
     """A published post. Raises PostNotFound."""
-    post = await repository.get_published(slug, as_of)
+    post = await repository.get_published(slug, clock.now())
     if post is None:
         raise PostNotFound(slug)
     return post

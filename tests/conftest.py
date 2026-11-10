@@ -27,6 +27,7 @@ from app.adapters.http.app import create_app
 from app.adapters.markdown import MarkdownItRenderer
 from app.adapters.memory_posts import InMemoryPostRepository, memory_post_repositories
 from app.container import Container
+from tests.blog_factories import CLOCK
 
 
 @pytest.fixture
@@ -43,9 +44,11 @@ def posts() -> InMemoryPostRepository:
 
 @pytest.fixture
 def container(posts: InMemoryPostRepository) -> Container:
-    """Fakes for every port; the contact form is off (no verifier or sender)."""
+    """Fakes for every port: a clock fixed at NOW; the contact form is off."""
     return Container(
-        posts=memory_post_repositories(posts), renderer=MarkdownItRenderer()
+        posts=memory_post_repositories(posts),
+        renderer=MarkdownItRenderer(),
+        clock=CLOCK,
     )
 
 

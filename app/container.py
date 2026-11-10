@@ -10,6 +10,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 from app.ports.driven.blog import MarkdownRenderer, PostRepositoryScope
+from app.ports.driven.clock import Clock
 from app.ports.driven.contact import HumanVerifier, MailSender
 
 
@@ -21,6 +22,9 @@ async def _nothing_to_close() -> None:
 class Container:
     posts: PostRepositoryScope
     renderer: MarkdownRenderer
+    clock: Clock
+    # False when posts only live in memory (no database): writes vanish with the process.
+    posts_are_durable: bool = False
     # None switches the contact form off: no bot check or no way to send mail.
     human_verifier: HumanVerifier | None = None
     mail_sender: MailSender | None = None

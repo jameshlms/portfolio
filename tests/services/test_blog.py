@@ -7,8 +7,14 @@ import pytest
 from app.adapters.memory_posts import InMemoryPostRepository
 from app.domain.blog import PostSource, RenderedBody, TagCount
 from app.domain.errors import InvalidPost, InvalidPosts, PostNotFound, UnknownTag
-from app.services.blog import blog_index, get_post, render_posts, sync_posts
-from tests.blog_factories import NOW, PUBLISHED, rendered, source
+from app.services.blog import (
+    blog_index,
+    get_post,
+    list_published_posts,
+    render_posts,
+    sync_posts,
+)
+from tests.blog_factories import CLOCK, NOW, PUBLISHED, FixedClock, rendered, source
 
 pytestmark = pytest.mark.anyio
 
@@ -60,7 +66,7 @@ async def test_sync_stores_posts_and_reports_removed_ones() -> None:
     )
 
     assert removed == ("old",)
-    assert (await get_post(repository, "kept", NOW)).html == "<p>new body</p>\n"
+    assert (await get_post(repository, CLOCK, "kept")).html == "<p>new body</p>\n"
     assert [p.slug for p in await repository.published(NOW)] == ["new", "kept"]
 
 
@@ -69,7 +75,7 @@ async def test_index_reads_published_posts_and_filters_them() -> None:
         [rendered("a", tags=("python",)), rendered("b", tags=("sql",))]
     )
 
-    index = await blog_index(repository, NOW, "python")
+    index = await blog_index(repository, CLOCK, "python")
 
     assert [p.slug for p in index.posts] == ["a"]
     assert index.tags == (TagCount("python", 1), TagCount("sql", 1))
@@ -79,7 +85,7 @@ async def test_unknown_tag_is_an_error() -> None:
     repository = InMemoryPostRepository([rendered("a", tags=("python",))])
 
     with pytest.raises(UnknownTag):
-        await blog_index(repository, NOW, "rust")
+        await blog_index(repository, CLOCK, "rust")
 
 
 async def test_tag_used_only_by_drafts_is_unknown() -> None:
@@ -88,12 +94,12 @@ async def test_tag_used_only_by_drafts_is_unknown() -> None:
     )
 
     with pytest.raises(UnknownTag):
-        await blog_index(repository, NOW, "rust")
+        await blog_index(repository, CLOCK, "rust")
 
 
 async def test_missing_post_is_an_error() -> None:
     with pytest.raises(PostNotFound):
-        await get_post(InMemoryPostRepository(), "nope", NOW)
+        await get_post(InMemoryPostRepository(), CLOCK, "nope")
 
 
 async def test_last_modified_is_the_revision_if_any() -> None:
@@ -106,3 +112,19 @@ async def test_last_modified_is_the_revision_if_any() -> None:
 
     assert posts["a"].last_modified == PUBLISHED
     assert posts["b"].last_modified == revised
+
+
+async def test_published_posts_are_judged_at_the_clocks_time() -> None:
+    launch = NOW + timedelta(days=1)
+    repository = InMemoryPostRepository(
+        [rendered("live"), rendered("next", published_at=launch)]
+    )
+
+    before = await list_published_posts(repository, CLOCK)
+    after = await list_published_posts(repository, FixedClock(launch))
+
+    assert [p.slug for p in before] == ["live"]
+    assert [p.slug for p in after] == ["next", "live"]
+    with pytest.raises(PostNotFound):
+        await get_post(repository, CLOCK, "next")
+    assert (await get_post(repository, FixedClock(launch), "next")).slug == "next"

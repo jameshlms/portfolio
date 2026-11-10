@@ -4,12 +4,10 @@ The tag links on the index use htmx to swap just the post list; htmx requests
 get the list fragment, everything else (plain links, history restores) the page.
 """
 
-from datetime import UTC, datetime
-
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 
-from app.adapters.http.deps import IsHtmx
+from app.adapters.http.deps import AppClock, IsHtmx
 from app.adapters.http.deps.blog import Posts
 from app.adapters.http.paths import Page, item_path
 from app.adapters.http.presentation import seo
@@ -24,10 +22,14 @@ router = APIRouter(tags=["blog"], default_response_class=HTMLResponse)
 
 @router.get(Page.BLOG)
 async def blog(
-    request: Request, posts: Posts, htmx: IsHtmx, tag: str | None = None
+    request: Request,
+    posts: Posts,
+    clock: AppClock,
+    htmx: IsHtmx,
+    tag: str | None = None,
 ) -> Response:
     try:
-        index = await blog_index(posts, datetime.now(UTC), tag or None)
+        index = await blog_index(posts, clock, tag or None)
     except UnknownTag as e:
         raise HTTPException(status_code=404) from e
 
@@ -37,9 +39,11 @@ async def blog(
 
 
 @router.get(item_path(Page.BLOG, "{slug}"))
-async def blog_post(request: Request, posts: Posts, slug: str) -> Response:
+async def blog_post(
+    request: Request, posts: Posts, clock: AppClock, slug: str
+) -> Response:
     try:
-        post = await get_post(posts, slug, datetime.now(UTC))
+        post = await get_post(posts, clock, slug)
     except PostNotFound as e:
         raise HTTPException(status_code=404) from e
 

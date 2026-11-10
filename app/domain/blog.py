@@ -46,7 +46,7 @@ class PostSource:
 @dataclass(frozen=True)
 class RenderedBody:
     html: str
-    has_charts: bool = False  # the page must load plotly.js
+    has_charts: bool = False  # the body embeds charts
 
 
 @dataclass(frozen=True)

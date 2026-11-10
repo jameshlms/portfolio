@@ -16,7 +16,6 @@ from pathlib import Path
 import structlog
 
 from app.adapters.cli.post_files import read_post_files
-from app.config import settings
 from app.container import Container
 from app.domain.errors import InvalidPost, InvalidPosts
 from app.services.blog import render_posts, sync_posts
@@ -44,7 +43,7 @@ async def _sync_posts(directory: Path, container: Container) -> int:
         return 1
 
     # Without a database the container's posts live in memory and would vanish.
-    if settings.database_url is None:
+    if not container.posts_are_durable:
         _log.error("database_url_missing")
         return 1
 
