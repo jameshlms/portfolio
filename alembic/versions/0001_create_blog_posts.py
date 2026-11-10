@@ -19,28 +19,33 @@ def upgrade() -> None:
     op.create_table(
         "blog_posts",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("slug", sa.String(200), nullable=False, unique=True),
+        sa.Column("slug", sa.String(200), nullable=False),
         sa.Column("title", sa.String(500), nullable=False),
         sa.Column("summary", sa.Text(), server_default="", nullable=False),
         sa.Column("tags", ARRAY(sa.String()), server_default="{}", nullable=False),
-        sa.Column("published_at", sa.DateTime(), nullable=True),
+        sa.Column("published_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("revised_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("content", sa.Text(), nullable=False),
+        sa.Column("content_html", sa.Text(), nullable=False),
+        sa.Column(
+            "has_charts", sa.Boolean(), server_default=sa.false(), nullable=False
+        ),
         sa.Column(
             "created_at",
-            sa.DateTime(),
+            sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
             nullable=False,
         ),
         sa.Column(
             "updated_at",
-            sa.DateTime(),
+            sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
             nullable=False,
         ),
         sa.Column("search_vector", TSVECTOR(), nullable=True),
     )
 
-    op.create_index("ix_blog_posts_slug", "blog_posts", ["slug"])
+    op.create_index("ix_blog_posts_slug", "blog_posts", ["slug"], unique=True)
     op.create_index(
         "ix_blog_posts_search_vector",
         "blog_posts",

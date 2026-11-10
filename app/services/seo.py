@@ -6,8 +6,10 @@ from typing import Any, Literal
 
 from app import paths
 from app.config import settings
+from app.domain.blog import Post, PostSummary
 from app.services.open_graph import MetaProperty, OpenGraph, OpenGraphArticle
 from app.services.schema_org import (
+    BlogPosting,
     BreadcrumbList,
     CreativeWork,
     GraphNode,
@@ -51,11 +53,12 @@ class PageMeta:
 
 
 # Only pages with a registered route belong here: this drives the sitemap and llms.txt.
-# Add RESUME / PROJECTS ("CollectionPage") / BLOG ("CollectionPage") as their routes ship.
+# Add RESUME / PROJECTS ("CollectionPage") as their routes ship.
 # fmt: off
 PAGE_META: dict[paths.Page, PageMeta] = {   # placeholder copy: write your own
     paths.Page.HOME:     PageMeta("Data engineer building ML systems", "Pipelines, platforms and ML systems by James."),
     paths.Page.ABOUT:    PageMeta("About", "Background, skills and how I work.", "ProfilePage"),
+    paths.Page.BLOG:     PageMeta("Blog", "Notes on data engineering, ML systems and the tools behind them.", "CollectionPage"),
     paths.Page.CONTACT:  PageMeta("Contact", "Get in touch about roles, projects and collaborations.", "ContactPage"),
 }
 # fmt: on
@@ -242,6 +245,77 @@ def for_page(page: paths.Page) -> SEOContext:
 
 def for_error_page(title: str, description: str, path: str) -> SEOContext:
     return SEOContext(title=title, description=description, path=path, noindex=True)
+
+
+def for_blog_index(tag: str | None = None) -> SEOContext:
+    """The blog index; a tag-filtered view is noindex, as it repeats the index's posts."""
+    page = for_page(paths.Page.BLOG)
+    if tag is None:
+        return page
+    return SEOContext(
+        title=f"Posts tagged {tag}",
+        description=f"Blog posts about {tag}.",
+        path=paths.Page.BLOG,
+        noindex=True,
+    )
+
+
+def _blog_posting_node(post: Post, url: str) -> BlogPosting:
+    return BlogPosting(
+        id=f"{url}#article",
+        url=url,
+        name=post.title,
+        headline=post.title,
+        description=post.summary,
+        in_language=LANGUAGE,
+        author=Ref(id=PERSON_ID),
+        publisher=Ref(id=PERSON_ID),
+        is_part_of=Ref(id=WEBSITE_ID),
+        main_entity_of_page=url,
+        date_published=post.published_at,
+        date_modified=post.last_modified,
+        keywords=post.tags or None,
+    )
+
+
+def for_post(post: Post) -> SEOContext:
+    path = paths.item_path(paths.Page.BLOG, post.slug)
+    return SEOContext(
+        title=post.title,
+        description=post.summary,
+        path=path,
+        article=OpenGraphArticle(
+            published_time=post.published_at,
+            modified_time=post.last_modified,
+            author=absolute_url(paths.Page.ABOUT),
+            tags=post.tags,
+        ),
+        structured_data=(
+            _website_node(),
+            _person_node(),
+            _blog_posting_node(post, absolute_url(path)),
+            _breadcrumb_node(
+                [
+                    _HOME_CRUMB,
+                    Crumb(PAGE_META[paths.Page.BLOG].title, paths.Page.BLOG),
+                    Crumb(post.title, path),
+                ]
+            ),
+        ),
+    )
+
+
+def published_posts(posts: Iterable[PostSummary]) -> tuple[PublishedPage, ...]:
+    """Blog posts as the sitemap and llms.txt list them."""
+    return tuple(
+        PublishedPage(
+            path=paths.item_path(paths.Page.BLOG, post.slug),
+            title=post.title,
+            summary=post.summary,
+            last_modified=post.last_modified,
+        )
+        for post in posts
+    )
 
 
 # `project` is duck-typed until the Project model exists.

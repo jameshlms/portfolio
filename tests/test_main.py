@@ -41,7 +41,7 @@ _CURRENT_NAV_TAB = re.compile(
 )
 
 
-@pytest.mark.parametrize("page", [Page.HOME, Page.ABOUT, Page.CONTACT])
+@pytest.mark.parametrize("page", [Page.HOME, Page.ABOUT, Page.BLOG, Page.CONTACT])
 def test_nav_marks_only_the_current_page(client: TestClient, page: Page) -> None:
     html = client.get(page).text
 

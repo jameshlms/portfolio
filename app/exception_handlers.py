@@ -11,12 +11,6 @@ from app.templates import make_templates
 _templates = make_templates()
 
 
-class DomainException(Exception):
-    def __init__(self, message: str, detail: dict[str, str]):
-        self.detail = detail
-        super().__init__(message)
-
-
 async def http_exception_handler(request: Request, exc: HTTPException) -> Response:
     if request.url.path.startswith("/api/"):
         return JSONResponse(

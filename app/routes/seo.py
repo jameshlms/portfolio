@@ -1,7 +1,10 @@
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Request
 
+from app.deps.blog import Posts
 from app.paths import Internal, RootFile
-from app.services.seo import llms_document, sitemap_urls
+from app.services.seo import llms_document, published_posts, sitemap_urls
 from app.templates import make_templates
 
 _templates = make_templates()
@@ -13,12 +16,12 @@ router = APIRouter(include_in_schema=False)
 
 
 @router.get(RootFile.SITEMAP)
-async def sitemap(request: Request):
-    # Blog posts join via content.published_posts once /blog/{slug} has a route.
+async def sitemap(request: Request, posts: Posts):
+    blog = published_posts(await posts.published(datetime.now(UTC)))
     return _templates.TemplateResponse(
         request,
         "seo/sitemap.xml.j2",
-        context={"urls": sitemap_urls()},
+        context={"urls": sitemap_urls(blog)},
         media_type="application/xml",
         headers=_CACHE_HEADERS,
     )
@@ -36,12 +39,12 @@ async def robots(request: Request):
 
 
 @router.get(RootFile.LLMS)
-async def llms(request: Request):
-    # Blog posts join via content.published_posts once /blog/{slug} has a route.
+async def llms(request: Request, posts: Posts):
+    blog = published_posts(await posts.published(datetime.now(UTC)))
     return _templates.TemplateResponse(
         request,
         "seo/llms.txt.j2",
-        context={"doc": llms_document(())},
+        context={"doc": llms_document(blog)},
         media_type="text/plain",
         headers=_CACHE_HEADERS,
     )

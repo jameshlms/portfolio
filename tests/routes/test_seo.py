@@ -6,7 +6,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.adapters.memory_posts import InMemoryPostRepository
 from app.config import settings
+from app.deps.blog import get_post_repository
 from app.paths import Page
 from app.routes import seo
 from app.services.seo import PAGE_META, SitemapUrl
@@ -15,9 +17,10 @@ _NS = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
 
 @pytest.fixture
-def client() -> Iterator[TestClient]:
+def client(posts: InMemoryPostRepository) -> Iterator[TestClient]:
     app = FastAPI()
     app.include_router(seo.router)
+    app.dependency_overrides[get_post_repository] = lambda: posts
     with TestClient(app) as c:
         yield c
 
@@ -41,7 +44,7 @@ def test_sitemap_escapes_xml_special_characters(
         f"{settings.base_url}/blog/hello?a=1&b=2",
         datetime(2026, 10, 1, 9, 0, tzinfo=UTC),
     )
-    monkeypatch.setattr(seo, "sitemap_urls", lambda: (entry,))
+    monkeypatch.setattr(seo, "sitemap_urls", lambda *_: (entry,))
 
     root = ElementTree.fromstring(
         client.get("/sitemap.xml").content

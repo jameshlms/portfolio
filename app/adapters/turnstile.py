@@ -3,7 +3,7 @@
 import httpx
 import structlog
 
-from app.services.contact import HumanCheckUnavailable
+from app.domain.errors import HumanCheckUnavailable
 
 SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 _MAX_TOKEN_LENGTH = 2048  # documented limit; longer values can't be real tokens
