@@ -7,7 +7,6 @@ class Page(StrEnum):
     ABOUT = "/about"
     CONTACT = "/contact"
     RESUME = "/resume"
-    PROJECTS = "/projects"
     BLOG = "/blog"
 
 
@@ -18,14 +17,12 @@ class RootFile(StrEnum):
     SITEMAP = "/sitemap.xml"
     ROBOTS = "/robots.txt"
     LLMS = "/llms.txt"
-    LLMS_FULL = "/llms-full.txt"
 
 
 @unique
 class Internal(StrEnum):
     """Paths that serve the app itself; never advertised to crawlers."""
 
-    ADMIN = "/admin"
     STATIC = "/static"
     HEALTH = "/healthz"
 

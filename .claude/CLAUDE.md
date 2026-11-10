@@ -38,7 +38,7 @@ app/
   paths.py              # Every URL path: Page, RootFile, Internal enums + item_path()
   templates.py          # make_templates(): Jinja2Templates over app/templates, StrictUndefined,
                         #   globals base_url and site_name
-  middleware.py         # TrustedHost, Vary: HX-Request, GZip (AdminAuthMiddleware defined, unregistered)
+  middleware.py         # TrustedHost, Vary: HX-Request, GZip
   exception_handlers.py # DomainError (by _DOMAIN_STATUS), HTTPException, validation and unexpected
                         #   errors -> errors/error.html, fragments/_error.html (htmx), JSON (/api/)
   cli.py                # `python -m app.cli sync-posts`: content/blog/*.md -> blog_posts
@@ -46,7 +46,7 @@ app/
   db.py                 # DeclarativeBase (datetimes are timestamptz), lazily created async
                         #   engine, get_session, transaction, close_engine
   models.py             # SQLAlchemy models (BlogPost, mirrors alembic 0001)
-  deps/                 # FastAPI dependencies: IsHtmx (+ wants_fragment), DbSession; contact.py
+  deps/                 # FastAPI dependencies: IsHtmx (+ wants_fragment); contact.py
                         #   wires the form's adapters from settings; blog.py picks the
                         #   PostRepository (SQL, or empty in-memory without DATABASE_URL);
                         #   rate_limit.py (in-memory sliding window)
@@ -56,7 +56,6 @@ app/
     seo.py              # sitemap.xml, robots.txt, llms.txt
     health.py           # /healthz for Railway's deploy healthcheck
     blog.py             # /blog (tag filter via ?tag=, htmx swaps the list) and /blog/{slug}
-    projects.py         # In progress; not registered in main.py
   services/
     errors.py           # DomainError and every domain error, grouped by feature
     blog.py             # Post records; PostRepository, MarkdownRenderer; parse_post,
@@ -64,7 +63,6 @@ app/
                         #   list_published_posts
     contact.py          # Purpose, ContactMessage.parse, OutgoingEmail, compose_email;
                         #   HumanVerifier, MailSender; send_contact_message
-    content.py          # Project DB queries (draft; to become a feature module like blog's)
     charts.py           # Plotly figure -> embeddable HTML
     seo.py              # PAGE_META (routed pages only), PublishedPage, SEOContext +
                         #   for_page / for_error_page / for_blog_index / for_post / for_project,
@@ -94,7 +92,7 @@ scripts/hooks/          # pre-commit: djlint-reformats staged HTML
 
 ## Conventions
 
-- **Paths**: never hard-code a URL path in Python. Routes and links use the enums in `app/paths.py` (`Page` for HTML pages, `RootFile` for crawler files, `Internal` for admin/static/health); child pages use `item_path(collection, slug)`. Templates link with `url_for(...)` (djlint rule J018).
+- **Paths**: never hard-code a URL path in Python. Routes and links use the enums in `app/paths.py` (`Page` for HTML pages, `RootFile` for crawler files, `Internal` for static/health); child pages use `item_path(collection, slug)`. Templates link with `url_for(...)` (djlint rule J018).
 - **SEO on every page**: each HTML response passes `seo` — `for_page(Page.X)` or, in error handlers, `for_error_page(...)`. `StrictUndefined` makes a page without it fail to render rather than ship generic metadata. Don't hand-write `<title>`, description, canonical, Open Graph or JSON-LD in page templates.
 - **PAGE_META is the single list of live pages**: it drives the sitemap, llms.txt and page metadata. Only add a page once its route is registered.
 - **Standard names**: schema.org and Open Graph models use snake_case fields that serialize to the standard's names (`type` → `@type`, `same_as` → `sameAs`, `image_alt` → `og:image:alt`). Models are frozen with `extra="forbid"` so misspelled properties fail at construction. JSON-LD keyword mappings are scoped per model (nodes: `type`/`id`; the document: `context`/`graph`), and a test checks every model for fields that would serialize as an `@` keyword it doesn't own or share a key with another field.
@@ -109,7 +107,7 @@ scripts/hooks/          # pre-commit: djlint-reformats staged HTML
 - **Root-level crawler files** (sitemap.xml, robots.txt, llms.txt) are rendered from `templates/seo/*.j2` by `routes/seo.py`. `sitemap.xml.j2` turns on autoescape explicitly, because `.j2` files aren't autoescaped by default.
 - **Database is optional at runtime**: the engine is created on first use, so the app boots without `DATABASE_URL`. Without it the blog reads an empty in-memory repository, so every page and the sitemap still render. Queries live in adapters behind a feature module's Protocol and return its dataclasses, not ORM rows. Use cases judge "published" at `as_of`, which defaults to now; tests pass a fixed one.
 - **Unfinished features** can be merged: keep the router out of `main.py`, the page out of `PAGE_META`, and the link out of the nav until it works.
-- **Type-checking exceptions are file-level and explained**: `schema_org.py` turns off `reportIncompatibleVariableOverride` (each subclass narrows `type` for the discriminator); `content.py` turns off undefined-variable checks until the `Project*` model exists. Don't add new exceptions without a comment saying why.
+- **Type-checking exceptions are file-level and explained**: `schema_org.py` turns off `reportIncompatibleVariableOverride` (each subclass narrows `type` for the discriminator). It's the only one; don't add new exceptions without a comment saying why.
 - **Immutability**: prefer frozen dataclasses / frozen Pydantic models and tuples for data passed between layers.
 
 ## Development
@@ -138,9 +136,9 @@ Copy `.env.example` to `.env` for local settings; the app runs with it empty.
 ## Notes / Not Yet Built
 
 - **Blog follow-ups**: full-text search (the `search_vector` column and GIN index are in place), an RSS/Atom feed, syntax highlighting for code blocks, and heading anchors.
-- **Projects pages**: `routes/projects.py` isn't registered. Projects need a model and table first (`content.py` references undefined `Project*` names and carries ruff/pyright exceptions until then).
-- **Admin**: GitHub OAuth settings, `AdminAuthMiddleware` and `admin.css` exist, but no admin routes or session middleware are registered.
-- **llms-full.txt**: `RootFile.LLMS_FULL` is reserved; no route yet.
+- **Projects pages**: not started. A projects feature would follow the blog's shape: a `services/projects.py` feature module, a table, an adapter, routes, and a `for_project` SEO context (an earlier draft is in git history).
+- **Admin**: not started. Posts are managed as files in `content/blog/`, so no admin is needed yet (an earlier GitHub-OAuth draft is in git history).
+- **llms-full.txt**: not built; add a `RootFile` member and a route in `routes/seo.py` when it is.
 - **Contact form**: shown only when `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` are set and mail can go out (`RESEND_API_KEY`, or logged when `DEBUG`). Resend needs the sending domain (`CONTACT_FROM_EMAIL`) verified. The rate limit is per process; move it to Redis if the app runs more than one replica. Brand logos in `static/images/brands/` are the official files, unmodified.
 - **Home page role cards**: not built (the placeholder loop was removed because it included a template that didn't exist). Add them as `components/_role_card.html`, with the home route passing `roles`.
 - **JSON API**: none. Build only when a real consumer (RSS reader, CLI, mobile app) exists; the error handler already returns JSON under `/api/`.

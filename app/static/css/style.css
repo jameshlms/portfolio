@@ -282,50 +282,6 @@ nav {
     border-radius: 100%;
 }
 
-.education-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1rem;
-}
-
-.education-card {
-    background: white;
-    border-radius: 8px;
-    padding: 1.5rem;
-    display: flex;
-    gap: 1rem;
-    align-items: flex-start;
-}
-
-.education-card__logo {
-    width: 64px;
-    height: 64px;
-    object-fit: contain;
-    flex-shrink: 0;
-}
-
-.education-card__body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-
-}
-
-.education-card__degree {
-    margin: 0;
-    font-size: 1rem;
-    color: black;
-}
-
-.education-card__institution,
-.education-card__years {
-    margin: 0;
-    font-size: 0.9rem;
-    color: #555;
-}
-
-
 /* Contact page */
 /* Keep the intro to the same measure as the sections below it. */
 .contact > .prose {

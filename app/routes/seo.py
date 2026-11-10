@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 
 from app.deps.blog import Posts
-from app.paths import Internal, RootFile
+from app.paths import RootFile
 from app.services.blog import list_published_posts
 from app.services.seo import llms_document, published_posts, sitemap_urls
 from app.templates import make_templates
@@ -31,7 +31,7 @@ async def robots(request: Request):
     return _templates.TemplateResponse(
         request,
         "seo/robots.txt.j2",
-        context={"disallow": (Internal.ADMIN,), "sitemap_path": RootFile.SITEMAP},
+        context={"sitemap_path": RootFile.SITEMAP},
         media_type="text/plain",
         headers=_CACHE_HEADERS,
     )

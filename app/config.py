@@ -50,15 +50,7 @@ class Settings(BaseSettings):
         "admin.jameshlms.com",
     ]
     debug: bool = False
-    # Not needed by any registered route yet (admin, DB-backed content, cache).
-    # Optional so a bare deploy boots without them; whatever uses one must check it's set.
-    github_token: str | None = None
-    github_client_id: str | None = None
-    github_client_secret: str | None = None
-    github_admin_username: str | None = None
-    session_secret_key: str | None = None
     database_url: _DatabaseUrl | None = None
-    redis_url: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

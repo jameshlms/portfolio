@@ -1,18 +1,9 @@
 import os
 
-# Settings() is built at import time and these have no defaults; set placeholders
-# so tests don't depend on a local .env. Real values in the environment win.
-_REQUIRED_SETTINGS = {
-    "GITHUB_TOKEN": "test",
-    "GITHUB_CLIENT_ID": "test",
-    "GITHUB_CLIENT_SECRET": "test",
-    "GITHUB_ADMIN_USERNAME": "test",
-    "SESSION_SECRET_KEY": "test",
-    "DATABASE_URL": "postgresql://test:test@localhost/test",
-    "REDIS_URL": "redis://localhost",
-}
-for key, value in _REQUIRED_SETTINGS.items():
-    os.environ.setdefault(key, value)
+# A placeholder so tests never pick up a developer's .env DATABASE_URL (environment
+# variables win over .env). No app test connects to it: the blog's repository is
+# overridden below, and the Postgres tests use TEST_DATABASE_URL.
+os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
 
 
 # Imported after the settings above are in place.

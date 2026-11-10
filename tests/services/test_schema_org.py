@@ -72,15 +72,18 @@ def test_page_type_is_restricted_to_known_page_types() -> None:
 def _document() -> JsonLdDocument:
     person = Person(id="https://x/#person", name="J", url="https://x/", same_as=("a",))
     site = WebSite(
-        id="https://x/#website", name="J", url="https://x/", publisher=person.ref()
+        id="https://x/#website",
+        name="J",
+        url="https://x/",
+        publisher=Ref(id="https://x/#person"),
     )
     page = WebPage(
         type="ProfilePage",
         url="https://x/about",
         name="About",
         description="d",
-        is_part_of=site.ref(),
-        main_entity=person.ref(),
+        is_part_of=Ref(id="https://x/#website"),
+        main_entity=Ref(id="https://x/#person"),
         date_modified=datetime(2026, 10, 1, 9, 0, tzinfo=UTC),
     )
     crumbs = BreadcrumbList(
@@ -119,15 +122,6 @@ def test_unknown_graph_node_type_is_rejected() -> None:
         JsonLdDocument.from_json_ld(
             {"@context": "https://schema.org", "@graph": [{"@type": "Robot"}]}
         )
-
-
-def test_ref_points_at_the_node_id() -> None:
-    assert Person(id="https://x/#p", name="J", url="u").ref() == Ref(id="https://x/#p")
-
-
-def test_ref_needs_an_id() -> None:
-    with pytest.raises(ValueError, match="no @id"):
-        Person(name="J", url="u").ref()
 
 
 def test_unset_same_as_is_omitted() -> None:
