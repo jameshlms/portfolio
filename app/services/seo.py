@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from app import paths
 from app.config import settings
-from app.domain.blog import Post, PostSummary
+from app.services.blog import Post, PostSummary
 from app.services.open_graph import MetaProperty, OpenGraph, OpenGraphArticle
 from app.services.schema_org import (
     BlogPosting,

@@ -4,9 +4,8 @@ import asyncio
 
 import pytest
 
-from app.domain.contact import ContactMessage, OutgoingEmail
-from app.domain.errors import DeliveryFailed, HumanCheckFailed
-from app.services.contact import send_contact_message
+from app.services.contact import ContactMessage, OutgoingEmail, send_contact_message
+from app.services.errors import DeliveryFailed, HumanCheckFailed
 
 _VALID = {
     "name": "Ada Lovelace",

@@ -1,8 +1,0 @@
-{% extends "base.html" %}
-{% block content %}
-    <section class="error">
-        <h1>{{ status_code }}</h1>
-        <p>Something went wrong on my end.</p>
-        <p><a href="{{ url_for('home') }}">Back to home</a></p>
-    </section>
-{% endblock %}

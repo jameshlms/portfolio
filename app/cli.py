@@ -18,12 +18,12 @@ import structlog
 
 from app.adapters.markdown import MarkdownItRenderer
 from app.adapters.post_files import read_post_files
-from app.adapters.sql_posts import SqlPostRepository
+from app.adapters.sql_posts import SqlPostRepository, storage_errors
 from app.config import settings
 from app.db import close_engine, transaction
-from app.domain.errors import InvalidPost, InvalidPosts
 from app.log_config import configure_logging
 from app.services.blog import render_posts, sync_posts
+from app.services.errors import InvalidPost, InvalidPosts, PostsUnavailable
 
 POSTS_DIR = Path(__file__).resolve().parent.parent / "content" / "blog"
 
@@ -52,8 +52,14 @@ async def _sync_posts(directory: Path) -> int:
         return 1
 
     try:
-        async with transaction() as session:
-            removed = await sync_posts(posts, SqlPostRepository(session))
+        # storage_errors also covers the commit when the transaction block exits.
+        with storage_errors():
+            async with transaction() as session:
+                removed = await sync_posts(posts, SqlPostRepository(session))
+    except PostsUnavailable:
+        # Nothing was committed, so the stored posts are unchanged.
+        _log.exception("posts_unavailable")
+        return 1
     finally:
         await close_engine()
 

@@ -13,9 +13,8 @@ router = APIRouter(default_response_class=HTMLResponse)
 
 @router.get(Page.HOME)
 async def home(request: Request):
-    # Role cards aren't built yet (_role_card.html); the loop renders nothing until they are.
     return _templates.TemplateResponse(
-        request, "pages/index.html", {"seo": seo.for_page(Page.HOME), "roles": ()}
+        request, "pages/index.html", {"seo": seo.for_page(Page.HOME)}
     )
 
 

@@ -2,7 +2,7 @@
 
 import structlog
 
-from app.domain.contact import OutgoingEmail
+from app.services.contact import OutgoingEmail
 
 _log = structlog.get_logger(__name__)
 

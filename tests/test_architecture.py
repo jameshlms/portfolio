@@ -1,7 +1,6 @@
-"""The dependency rule, checked from the source: adapters -> ports -> domain.
-
-The domain imports only the standard library and itself. Ports import only the
-standard library and the domain. Nothing in either may reach infrastructure.
+"""The feature modules stay pure: services/blog.py, contact.py and errors.py hold
+the rules, so they import only the standard library and each other. Anything that
+touches a database, HTTP or a framework lives in adapters/, routes/ or deps/.
 """
 
 import ast
@@ -10,7 +9,9 @@ from pathlib import Path
 
 import pytest
 
-APP = Path(__file__).resolve().parent.parent / "app"
+SERVICES = Path(__file__).resolve().parent.parent / "app" / "services"
+_FEATURES = ("blog.py", "contact.py", "errors.py")
+_SIBLINGS = {f"app.services.{name.removesuffix('.py')}" for name in _FEATURES}
 
 
 def _imports(path: Path) -> set[str]:
@@ -23,34 +24,14 @@ def _imports(path: Path) -> set[str]:
     return modules
 
 
-def _files(layer: str) -> list[Path]:
-    return sorted((APP / layer).rglob("*.py"))
-
-
-def _allowed(module: str, packages: tuple[str, ...]) -> bool:
-    top = module.split(".")[0]
-    return (
-        top in sys.stdlib_module_names
-        or module == "__future__"
-        or any(module == p or module.startswith(f"{p}.") for p in packages)
-    )
-
-
-@pytest.mark.parametrize("path", _files("domain"), ids=lambda p: p.name)
-def test_domain_imports_only_itself_and_the_stdlib(path: Path) -> None:
-    bad = {m for m in _imports(path) if not _allowed(m, ("app.domain",))}
+@pytest.mark.parametrize("name", _FEATURES)
+def test_feature_modules_import_only_the_stdlib_and_each_other(name: str) -> None:
+    bad = {
+        m
+        for m in _imports(SERVICES / name)
+        if m.split(".")[0] not in sys.stdlib_module_names
+        and m != "__future__"
+        and m not in _SIBLINGS
+    }
 
     assert bad == set()
-
-
-@pytest.mark.parametrize(
-    "path", _files("ports"), ids=lambda p: str(p.relative_to(APP / "ports"))
-)
-def test_ports_import_only_the_domain_and_the_stdlib(path: Path) -> None:
-    bad = {m for m in _imports(path) if not _allowed(m, ("app.domain", "app.ports"))}
-
-    assert bad == set()
-
-
-def test_the_layers_have_files_to_check() -> None:
-    assert _files("domain") and _files("ports")

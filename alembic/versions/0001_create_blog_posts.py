@@ -30,18 +30,6 @@ def upgrade() -> None:
         sa.Column(
             "has_charts", sa.Boolean(), server_default=sa.false(), nullable=False
         ),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.Column(
-            "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
         sa.Column("search_vector", TSVECTOR(), nullable=True),
     )
 

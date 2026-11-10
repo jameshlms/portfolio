@@ -17,16 +17,15 @@ from fastapi.responses import HTMLResponse, Response
 from app.config import settings
 from app.deps import IsHtmx
 from app.deps.contact import ContactRateLimiter, ContactSender, ContactVerifier
-from app.domain.contact import ContactMessage, Purpose
-from app.domain.errors import (
+from app.paths import Page
+from app.services import seo
+from app.services.contact import ContactMessage, Purpose, send_contact_message
+from app.services.errors import (
     DeliveryFailed,
     HumanCheckFailed,
     HumanCheckUnavailable,
     InvalidContactMessage,
 )
-from app.paths import Page
-from app.services import seo
-from app.services.contact import send_contact_message
 from app.templates import make_templates
 
 _templates = make_templates()
@@ -68,7 +67,7 @@ def _render(
     if htmx:
         return _templates.TemplateResponse(
             request,
-            "components/_contact_form.html",
+            "fragments/_contact_form.html",
             _form_context(form),
             status_code=status_code,
         )

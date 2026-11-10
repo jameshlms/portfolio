@@ -3,8 +3,8 @@
 import httpx
 import structlog
 
-from app.domain.contact import OutgoingEmail
-from app.domain.errors import DeliveryFailed
+from app.services.contact import OutgoingEmail
+from app.services.errors import DeliveryFailed
 
 EMAILS_URL = "https://api.resend.com/emails"
 USER_AGENT = "jameshlms-portfolio/1.0"  # Resend rejects requests without one

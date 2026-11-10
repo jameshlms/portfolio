@@ -11,8 +11,8 @@ from pathlib import Path
 import frontmatter
 import yaml  # python-frontmatter's YAML parser; its errors are what a bad header raises
 
-from app.domain.blog import PostSource, parse_post
-from app.domain.errors import InvalidPost
+from app.services.blog import PostSource, parse_post
+from app.services.errors import InvalidPost
 
 
 @dataclass(frozen=True)
@@ -40,6 +40,10 @@ def _read(path: Path) -> PostSource | InvalidPost:
         )
     except yaml.YAMLError as e:
         return InvalidPost(path.stem, {"front matter": str(e)})
+    except UnicodeDecodeError as e:
+        return InvalidPost(path.stem, {"file": f"Not UTF-8 text: {e.reason}."})
+    except OSError as e:
+        return InvalidPost(path.stem, {"file": f"Can't be read: {e.strerror or e}."})
     except InvalidPost as e:
         return e
 

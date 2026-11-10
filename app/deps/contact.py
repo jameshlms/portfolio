@@ -14,7 +14,7 @@ from app.adapters.resend import ResendMailSender
 from app.adapters.turnstile import TurnstileVerifier
 from app.config import settings
 from app.deps.rate_limit import Limit, RateLimiter
-from app.ports.driven.contact import HumanVerifier, MailSender
+from app.services.contact import HumanVerifier, MailSender
 
 _CONTACT_LIMITER = RateLimiter(
     Limit(count=5, seconds=10 * 60), Limit(count=20, seconds=24 * 60 * 60)
