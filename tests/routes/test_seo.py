@@ -56,14 +56,14 @@ def test_sitemap_escapes_xml_special_characters(
     assert url.findtext("sm:lastmod", namespaces=_NS) == "2026-10-01"
 
 
-def test_robots_blocks_admin_and_points_at_sitemap(client: TestClient) -> None:
+def test_robots_allows_everything_and_points_at_sitemap(client: TestClient) -> None:
     response = client.get("/robots.txt")
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/plain")
     assert response.text.splitlines() == [
         "User-agent: *",
-        "Disallow: /admin",
+        "Allow: /",
         "",
         f"Sitemap: {settings.base_url}/sitemap.xml",
     ]

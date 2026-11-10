@@ -5,8 +5,8 @@ import plotly.graph_objects as go
 import pytest
 
 from app.adapters.markdown import MarkdownItRenderer
-from app.domain.blog import RenderedBody
-from app.domain.errors import InvalidPost
+from app.services.blog import RenderedBody
+from app.services.errors import InvalidPost
 from tests.blog_factories import source
 
 _figure_json = go.Figure(go.Bar(x=["before", "after"], y=[4.2, 0.09])).to_json()

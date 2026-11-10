@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Index, String, Text, false, func
+from sqlalchemy import Index, String, Text, false
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -8,7 +8,9 @@ from app.db import Base
 
 
 class BlogPost(Base):
-    """Mirrors alembic revision 0001. Rows are written by `app.cli sync-posts`."""
+    """Mirrors alembic revision 0001. Rows are written by `app.cli sync-posts`,
+    which rewrites the table from content/blog/ on every deploy: the dates that
+    matter (published_at, revised_at) come from the front matter."""
 
     __tablename__ = "blog_posts"
     __table_args__ = (
@@ -26,8 +28,4 @@ class BlogPost(Base):
     content: Mapped[str] = mapped_column(Text)  # Markdown source; feeds search_vector
     content_html: Mapped[str] = mapped_column(Text)  # rendered at sync time
     has_charts: Mapped[bool] = mapped_column(server_default=false())  # load plotly.js
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now()
-    )
     search_vector: Mapped[str | None] = mapped_column(TSVECTOR)

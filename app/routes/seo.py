@@ -1,9 +1,8 @@
-from datetime import UTC, datetime
-
 from fastapi import APIRouter, Request
 
 from app.deps.blog import Posts
-from app.paths import Internal, RootFile
+from app.paths import RootFile
+from app.services.blog import list_published_posts
 from app.services.seo import llms_document, published_posts, sitemap_urls
 from app.templates import make_templates
 
@@ -17,7 +16,7 @@ router = APIRouter(include_in_schema=False)
 
 @router.get(RootFile.SITEMAP)
 async def sitemap(request: Request, posts: Posts):
-    blog = published_posts(await posts.published(datetime.now(UTC)))
+    blog = published_posts(await list_published_posts(posts))
     return _templates.TemplateResponse(
         request,
         "seo/sitemap.xml.j2",
@@ -32,7 +31,7 @@ async def robots(request: Request):
     return _templates.TemplateResponse(
         request,
         "seo/robots.txt.j2",
-        context={"disallow": (Internal.ADMIN,), "sitemap_path": RootFile.SITEMAP},
+        context={"sitemap_path": RootFile.SITEMAP},
         media_type="text/plain",
         headers=_CACHE_HEADERS,
     )
@@ -40,7 +39,7 @@ async def robots(request: Request):
 
 @router.get(RootFile.LLMS)
 async def llms(request: Request, posts: Posts):
-    blog = published_posts(await posts.published(datetime.now(UTC)))
+    blog = published_posts(await list_published_posts(posts))
     return _templates.TemplateResponse(
         request,
         "seo/llms.txt.j2",

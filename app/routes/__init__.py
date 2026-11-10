@@ -1,9 +1,1 @@
-from app.routes import blog, health, pages, projects, seo
-
-__all__ = [
-    "blog",
-    "health",
-    "pages",
-    "projects",
-    "seo",
-]
+"""HTTP routers, one per area; app.main includes them."""

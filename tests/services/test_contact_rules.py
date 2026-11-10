@@ -2,8 +2,8 @@
 
 import pytest
 
-from app.domain.contact import MESSAGE_MAX, ContactMessage, Purpose, compose_email
-from app.domain.errors import InvalidContactMessage
+from app.services.contact import MESSAGE_MAX, ContactMessage, Purpose, compose_email
+from app.services.errors import InvalidContactMessage
 
 _VALID = {
     "name": "Ada Lovelace",

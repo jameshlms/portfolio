@@ -5,8 +5,8 @@ import httpx
 import pytest
 
 from app.adapters.resend import EMAILS_URL, ResendMailSender
-from app.domain.contact import OutgoingEmail
-from app.domain.errors import DeliveryFailed
+from app.services.contact import OutgoingEmail
+from app.services.errors import DeliveryFailed
 
 _EMAIL = OutgoingEmail(
     to="me@example.com", subject="Hi", text="Body", reply_to="ada@example.com"

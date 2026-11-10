@@ -4,7 +4,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
 
-from app.domain.blog import PostSource, RenderedPost
+from app.services.blog import PostSource, RenderedPost
 
 PUBLISHED = datetime(2026, 10, 1, tzinfo=UTC)
 NOW = datetime(2026, 11, 7, 12, tzinfo=UTC)

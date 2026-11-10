@@ -2,7 +2,7 @@ import inspect
 
 import pytest
 
-from app.domain import errors
+from app.services import errors
 
 _ERRORS = [
     cls

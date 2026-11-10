@@ -3,7 +3,7 @@
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 
-from app.domain.blog import Post, PostSummary, RenderedPost
+from app.services.blog import Post, PostSummary, RenderedPost
 
 
 class InMemoryPostRepository:

@@ -6,12 +6,11 @@ from typing import Any, Literal
 
 from app import paths
 from app.config import settings
-from app.domain.blog import Post, PostSummary
+from app.services.blog import Post, PostSummary
 from app.services.open_graph import MetaProperty, OpenGraph, OpenGraphArticle
 from app.services.schema_org import (
     BlogPosting,
     BreadcrumbList,
-    CreativeWork,
     GraphNode,
     JsonLdDocument,
     ListItem,
@@ -53,7 +52,7 @@ class PageMeta:
 
 
 # Only pages with a registered route belong here: this drives the sitemap and llms.txt.
-# Add RESUME / PROJECTS ("CollectionPage") as their routes ship.
+# Add RESUME as its route ships.
 # fmt: off
 PAGE_META: dict[paths.Page, PageMeta] = {   # placeholder copy: write your own
     paths.Page.HOME:     PageMeta("Data engineer building ML systems", "Pipelines, platforms and ML systems by James."),
@@ -66,7 +65,7 @@ PAGE_META: dict[paths.Page, PageMeta] = {   # placeholder copy: write your own
 
 @dataclass(frozen=True)
 class PublishedPage:
-    """A published item page (blog post, project) as crawlers should see it."""
+    """A published item page (e.g. a blog post) as crawlers should see it."""
 
     path: str  # site-relative, e.g. "/blog/my-post"
     title: str
@@ -207,19 +206,6 @@ def _breadcrumb_node(crumbs: Iterable[Crumb]) -> BreadcrumbList:
     )
 
 
-def _project_node(project: Any, path: str) -> CreativeWork:
-    url = absolute_url(path)
-    return CreativeWork(
-        id=f"{url}#project",
-        url=url,
-        name=project.title,
-        description=project.summary,
-        author=Ref(id=PERSON_ID),
-        date_published=project.published_at,
-        date_modified=project.updated_at,
-    )
-
-
 _HOME_CRUMB = Crumb("Home", paths.Page.HOME)
 
 
@@ -315,42 +301,6 @@ def published_posts(posts: Iterable[PostSummary]) -> tuple[PublishedPage, ...]:
             last_modified=post.last_modified,
         )
         for post in posts
-    )
-
-
-# `project` is duck-typed until the Project model exists.
-def for_project(project: Any) -> SEOContext:
-    path = paths.item_path(paths.Page.PROJECTS, project.slug)
-    return SEOContext(
-        title=project.seo_title or project.title,
-        description=project.summary,
-        path=path,
-        image=SocialImage(
-            project.cover.og_url,
-            project.cover.alt,
-            project.cover.width,
-            project.cover.height,
-        )
-        if project.cover
-        else DEFAULT_SOCIAL_IMAGE,
-        article=OpenGraphArticle(  # long-form case study; drop for og:type=website
-            published_time=project.published_at,
-            modified_time=project.updated_at,
-            author=absolute_url(paths.Page.ABOUT),
-            tags=tuple(t.name for t in project.tags),
-        ),
-        structured_data=(
-            _website_node(),
-            _person_node(),
-            _project_node(project, path),
-            _breadcrumb_node(
-                [
-                    _HOME_CRUMB,
-                    Crumb("Projects", paths.Page.PROJECTS),
-                    Crumb(project.title, path),
-                ]
-            ),
-        ),
     )
 
 

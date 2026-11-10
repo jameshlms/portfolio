@@ -19,7 +19,8 @@ from app.adapters.memory_posts import InMemoryPostRepository
 from app.adapters.sql_posts import SqlPostRepository
 from app.db import Base
 from app.models import BlogPost
-from app.ports.driven.blog import PostRepository
+from app.services.blog import PostRepository
+from app.services.errors import PostsUnavailable
 from tests.blog_factories import NOW, PUBLISHED, rendered
 
 pytestmark = pytest.mark.anyio
@@ -133,23 +134,6 @@ async def test_replace_all_with_nothing_removes_everything(
 
 
 @needs_db
-async def test_unchanged_posts_are_not_rewritten(session: AsyncSession) -> None:
-    repository = SqlPostRepository(session)
-    await repository.replace_all([rendered("same"), rendered("edited")])
-    await session.execute(text("UPDATE blog_posts SET updated_at = '2000-01-01'"))
-
-    await repository.replace_all(
-        [rendered("same"), replace(rendered("edited"), html="<p>new</p>")]
-    )
-
-    # .all(), not .tuples(): a Result has keys(), so dict() would treat it as a mapping.
-    result = await session.execute(select(BlogPost.slug, BlogPost.updated_at))
-    rows = {slug: updated_at for slug, updated_at in result.all()}
-    assert rows["same"].year == 2000
-    assert rows["edited"].year > 2000
-
-
-@needs_db
 async def test_trigger_indexes_posts_for_search(session: AsyncSession) -> None:
     await SqlPostRepository(session).replace_all(
         [rendered("a", markdown="Partitioning large tables")]
@@ -174,3 +158,18 @@ async def test_migrations_match_the_models(session: AsyncSession) -> None:
     )
 
     assert diff == []
+
+
+# --- Failure translation (no database needed) ----------------------------------
+
+
+async def test_unreachable_database_raises_posts_unavailable() -> None:
+    # Port 1 on localhost refuses connections: asyncpg raises an OSError.
+    engine = create_async_engine("postgresql+asyncpg://u:p@127.0.0.1:1/none")
+    try:
+        async with AsyncSession(engine) as session:
+            with pytest.raises(PostsUnavailable) as raised:
+                await SqlPostRepository(session).published(NOW)
+        assert isinstance(raised.value.__cause__, OSError)
+    finally:
+        await engine.dispose()

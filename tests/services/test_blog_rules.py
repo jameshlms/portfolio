@@ -4,14 +4,14 @@ from datetime import UTC, date, datetime, timedelta, timezone
 
 import pytest
 
-from app.domain.blog import (
+from app.services.blog import (
     SUMMARY_MAX,
     PostSummary,
     TagCount,
     build_index,
     parse_post,
 )
-from app.domain.errors import InvalidPost, UnknownTag
+from app.services.errors import InvalidPost, UnknownTag
 
 _META = {
     "title": "A post",
@@ -84,6 +84,14 @@ def test_every_problem_is_reported_at_once() -> None:
     )
 
     assert set(errors) == {"title", "summary", "tags", "published", "auhtor", "body"}
+
+
+def test_non_string_front_matter_keys_are_reported_not_crashed_on() -> None:
+    # YAML reads `2026: x` with an int key; mixed with str keys, sorting would fail.
+    with pytest.raises(InvalidPost) as e:
+        parse_post("a-post", {**_META, 2026: "x", "auhtor": "y"}, "Body.")
+
+    assert {"2026", "auhtor"} <= set(e.value.errors)
 
 
 def test_tags_must_be_hyphenated_words() -> None:

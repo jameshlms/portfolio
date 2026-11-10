@@ -76,11 +76,6 @@ class Thing(JsonLdModel):
     image: str | None = None
     same_as: tuple[str, ...] | None = None
 
-    def ref(self) -> Ref:
-        if self.id is None:
-            raise ValueError(f"{self.type} has no @id to reference")
-        return Ref(id=self.id)
-
 
 class Person(Thing):
     type: Literal["Person"] = "Person"

@@ -1,7 +1,9 @@
 """Every business-rule error in the portfolio, grouped by feature.
 
-Pure: no framework imports. The domain and the use cases raise these; adapters at the edge (routes,
-the CLI) catch them and translate, e.g. to an HTTP status or an exit code.
+Pure: no framework imports. The feature modules (services/blog.py, contact.py)
+raise these for broken rules, and driven adapters translate infrastructure
+failures into them. The edges (exception_handlers, the CLI) catch them and
+translate, e.g. to an HTTP status or an exit code.
 Everything here derives from `DomainError`, so a boundary can catch all of them
 at once.
 """
@@ -67,6 +69,10 @@ class InvalidPosts(BlogError):
     def __init__(self, posts: Sequence[InvalidPost]) -> None:
         self.posts: tuple[InvalidPost, ...] = tuple(posts)
         super().__init__("; ".join(str(p) for p in self.posts))
+
+
+class PostsUnavailable(BlogError):
+    """The posts can't be read or written right now (e.g. the store is unreachable)."""
 
 
 class PostNotFound(BlogError):

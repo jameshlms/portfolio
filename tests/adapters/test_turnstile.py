@@ -5,7 +5,7 @@ import httpx
 import pytest
 
 from app.adapters.turnstile import SITEVERIFY_URL, TurnstileVerifier
-from app.domain.errors import HumanCheckUnavailable
+from app.services.errors import HumanCheckUnavailable
 
 
 def _verify(

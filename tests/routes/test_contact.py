@@ -13,10 +13,10 @@ from app.deps.contact import (
     get_mail_sender,
 )
 from app.deps.rate_limit import Limit, RateLimiter
-from app.domain.contact import OutgoingEmail
-from app.domain.errors import DeliveryFailed, HumanCheckUnavailable
 from app.main import app
 from app.paths import Page
+from app.services.contact import OutgoingEmail
+from app.services.errors import DeliveryFailed, HumanCheckUnavailable
 
 _FORM = {
     "name": "Ada Lovelace",

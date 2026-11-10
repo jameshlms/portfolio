@@ -14,7 +14,7 @@ from app.adapters.memory_posts import InMemoryPostRepository
 from app.adapters.sql_posts import SqlPostRepository
 from app.config import settings
 from app.db import get_session
-from app.ports.driven.blog import PostRepository
+from app.services.blog import PostRepository
 
 
 async def get_post_repository() -> AsyncIterator[PostRepository]:
