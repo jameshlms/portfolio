@@ -69,6 +69,10 @@ class InvalidPosts(BlogError):
         super().__init__("; ".join(str(p) for p in self.posts))
 
 
+class PostsUnavailable(BlogError):
+    """The posts can't be read or written right now (e.g. the store is unreachable)."""
+
+
 class PostNotFound(BlogError):
     """No published post has this slug."""
 

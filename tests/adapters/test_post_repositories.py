@@ -16,8 +16,10 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.adapters.memory_posts import InMemoryPostRepository
+from app.adapters.postgres.engine import make_engine, make_sessions
 from app.adapters.postgres.models import Base, BlogPost
-from app.adapters.postgres.posts import SqlPostRepository
+from app.adapters.postgres.posts import SqlPostRepository, sql_post_repositories
+from app.domain.errors import PostsUnavailable
 from app.ports.driven.blog import PostRepository
 from tests.blog_factories import NOW, PUBLISHED, rendered
 
@@ -173,3 +175,30 @@ async def test_migrations_match_the_models(session: AsyncSession) -> None:
     )
 
     assert diff == []
+
+
+# --- Failure translation (no database needed) ----------------------------------
+
+
+async def test_unreachable_database_raises_posts_unavailable() -> None:
+    # Port 1 on localhost refuses connections: the driver raises an OSError.
+    engine = make_engine("postgresql+asyncpg://u:p@127.0.0.1:1/none")
+    scope = sql_post_repositories(make_sessions(engine))
+    try:
+        with pytest.raises(PostsUnavailable) as raised:
+            async with scope() as repository:
+                await repository.published(NOW)
+        assert isinstance(raised.value.__cause__, OSError)
+    finally:
+        await engine.dispose()
+
+
+async def test_errors_from_the_block_pass_through_untranslated() -> None:
+    engine = make_engine("postgresql+asyncpg://u:p@127.0.0.1:1/none")
+    scope = sql_post_repositories(make_sessions(engine))
+    try:
+        with pytest.raises(LookupError):
+            async with scope():
+                raise LookupError("not a storage error")
+    finally:
+        await engine.dispose()

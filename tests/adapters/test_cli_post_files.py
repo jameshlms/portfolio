@@ -55,6 +55,19 @@ def test_collects_invalid_files_instead_of_stopping(tmp_path: Path) -> None:
     }
 
 
+def test_unreadable_files_are_reported_as_invalid(tmp_path: Path) -> None:
+    (tmp_path / "latin-1.md").write_bytes("---\ntitle: Café\n---\n".encode("latin-1"))
+    (tmp_path / "unreadable.md").mkdir()  # a directory named like a post: read fails
+
+    files = read_post_files(tmp_path)
+
+    assert files.posts == ()
+    assert {e.slug: set(e.errors) for e in files.invalid} == {
+        "latin-1": {"file"},
+        "unreadable": {"file"},
+    }
+
+
 def test_missing_directory_is_an_error(tmp_path: Path) -> None:
     with pytest.raises(NotADirectoryError):
         read_post_files(tmp_path / "nope")

@@ -1,6 +1,7 @@
 """The blog through the real app, reading from the in-memory repository (conftest)."""
 
 import asyncio
+import html
 import json
 import re
 from collections.abc import Iterator
@@ -148,7 +149,7 @@ def test_unpublished_posts_are_404(client: TestClient, slug: str) -> None:
     response = client.get(item_path(Page.BLOG, slug))
 
     assert response.status_code == 404
-    assert "That page doesn't exist." in response.text
+    assert "That page doesn't exist." in html.unescape(response.text)
 
 
 # --- Crawler files -------------------------------------------------------------

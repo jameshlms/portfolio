@@ -1,0 +1,8 @@
+{# The body of every error page. Expects `error` (an ErrorPage) and `status_code`. #}
+<section class="error">
+    <h1>{{ status_code }}</h1>
+    <p>{{ error.message }}</p>
+    <p>
+        <a href="{{ url_for('home') }}">Back to home</a>
+    </p>
+</section>

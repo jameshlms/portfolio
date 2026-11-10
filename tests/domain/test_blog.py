@@ -86,6 +86,14 @@ def test_every_problem_is_reported_at_once() -> None:
     assert set(errors) == {"title", "summary", "tags", "published", "auhtor", "body"}
 
 
+def test_non_string_front_matter_keys_are_reported_not_crashed_on() -> None:
+    # YAML reads `2026: x` with an int key; mixed with str keys, sorting would fail.
+    with pytest.raises(InvalidPost) as e:
+        parse_post("a-post", {**_META, 2026: "x", "auhtor": "y"}, "Body.")
+
+    assert {"2026", "auhtor"} <= set(e.value.errors)
+
+
 def test_tags_must_be_hyphenated_words() -> None:
     assert "data engineering" in _errors(tags=["data engineering"])["tags"]
 

@@ -9,6 +9,7 @@ from app.adapters.cli import commands as cli
 from app.adapters.markdown import MarkdownItRenderer
 from app.adapters.memory_posts import InMemoryPostRepository, memory_post_repositories
 from app.container import Container
+from app.domain.errors import PostsUnavailable
 from app.ports.driven.blog import PostRepository
 from tests.blog_factories import CLOCK
 
@@ -63,6 +64,24 @@ def test_valid_posts_are_stored(tmp_path: Path) -> None:
 
     assert cli.main(["sync-posts", "--dir", str(tmp_path)], container) == 0
     assert [p.slug for p in asyncio.run(repository.published(CLOCK.now()))] == ["ok"]
+
+
+def test_unreachable_database_fails_the_sync_cleanly(tmp_path: Path) -> None:
+    (tmp_path / "ok.md").write_text("---\ntitle: T\nsummary: S\n---\nBody")
+
+    @asynccontextmanager
+    async def unreachable() -> AsyncIterator[PostRepository]:
+        raise PostsUnavailable("down")
+        yield  # pragma: no cover  (makes this an async generator)
+
+    container = Container(
+        posts=unreachable,
+        renderer=MarkdownItRenderer(),
+        clock=CLOCK,
+        posts_are_durable=True,
+    )
+
+    assert cli.main(["sync-posts", "--dir", str(tmp_path)], container) == 1
 
 
 def test_posts_directory_ships_with_the_repo() -> None:

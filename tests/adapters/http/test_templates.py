@@ -3,10 +3,11 @@
 templates/
   base.html     the layout every page extends
   pages/        whole pages; routes render them
-  errors/       error pages; the exception handlers render them
+  errors/       the error page; the exception handlers render it
   seo/          crawler files (sitemap.xml, robots.txt, llms.txt)
   components/   partials, only ever {% include %}d by other templates
-  fragments/    partials a route also returns on its own, for htmx to swap in
+  fragments/    partials returned on their own for htmx to swap in, by a route
+                or (fragments/_error.html) the exception handlers
 
 A fragment's outermost element (besides a <title> for the tab) carries the id
 its hx-target names, so an outerHTML swap leaves that target in the page for the
@@ -84,10 +85,10 @@ _FRAGMENTS = [t for t in _templates() if t.startswith("fragments/")]
 
 
 @pytest.mark.parametrize("name", _FRAGMENTS, ids=str)
-def test_every_fragment_is_returned_by_a_route(name: str) -> None:
-    routes = {n for n, path in _RENDERED.items() if path.parent.name == "routes"}
-
-    assert name in routes, f"Nothing returns {name} on its own: move it to components/."
+def test_every_fragment_is_returned_on_its_own(name: str) -> None:
+    assert name in _RENDERED, (
+        f"Nothing returns {name} on its own: move it to components/."
+    )
 
 
 class _TopLevel(HTMLParser):

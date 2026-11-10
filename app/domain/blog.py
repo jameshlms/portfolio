@@ -14,6 +14,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from types import MappingProxyType
+from typing import Any
 
 from app.domain.errors import InvalidPost, UnknownTag
 
@@ -102,7 +103,7 @@ class BlogIndex:
 
 def parse_post(
     slug: str,
-    metadata: Mapping[str, object],
+    metadata: Mapping[Any, object],  # parsed YAML: keys needn't be strings
     markdown: str,
     figures: Mapping[str, str] = MappingProxyType({}),
 ) -> PostSource:
@@ -118,7 +119,8 @@ def parse_post(
             f"Use lowercase letters, digits and single hyphens, at most {SLUG_MAX} "
             "characters (it's the file name)."
         )
-    for field in sorted(metadata.keys() - _FIELDS):
+    # str(): YAML keys needn't be strings (`2026: x`), and mixed types don't sort.
+    for field in sorted(str(k) for k in metadata.keys() - _FIELDS):
         errors[field] = f"Unknown field. Allowed: {', '.join(sorted(_FIELDS))}."
 
     title = _text(metadata.get("title"), "title", TITLE_MAX, errors)

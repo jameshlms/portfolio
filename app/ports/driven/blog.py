@@ -16,7 +16,11 @@ class MarkdownRenderer(Protocol):
 
 
 class PostRepository(Protocol):
-    """Where posts are kept. "Published" means published_at is set and not after `as_of`."""
+    """Where posts are kept. "Published" means published_at is set and not after `as_of`.
+
+    Every method raises PostsUnavailable, never a storage-specific error, when the
+    store can't be reached.
+    """
 
     async def published(self, as_of: datetime) -> tuple[PostSummary, ...]:
         """Published posts, newest first."""
@@ -30,5 +34,6 @@ class PostRepository(Protocol):
 
 
 # Opens a PostRepository for one unit of work: `async with posts() as repository:`.
-# Writes inside the block are kept only if it exits without an error.
+# Writes inside the block are kept only if it exits without an error. Raises
+# PostsUnavailable if they can't be kept.
 type PostRepositoryScope = Callable[[], AbstractAsyncContextManager[PostRepository]]

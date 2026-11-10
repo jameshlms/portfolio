@@ -1,0 +1,9 @@
+{# An error answering an htmx request. exception_handlers sends it with
+   HX-Retarget: #main-content and HX-Reswap: outerHTML, so it replaces the page's
+   main area instead of landing inside whatever small element made the request. #}
+{% if htmx %}
+    <title>{{ seo.document_title }}</title>
+{% endif %}
+<main id="main-content">
+    {% include "components/_error_message.html" %}
+</main>

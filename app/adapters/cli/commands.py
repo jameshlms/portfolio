@@ -17,7 +17,7 @@ import structlog
 
 from app.adapters.cli.post_files import read_post_files
 from app.container import Container
-from app.domain.errors import InvalidPost, InvalidPosts
+from app.domain.errors import InvalidPost, InvalidPosts, PostsUnavailable
 from app.services.blog import render_posts, sync_posts
 
 POSTS_DIR = Path(__file__).resolve().parents[3] / "content" / "blog"
@@ -47,8 +47,13 @@ async def _sync_posts(directory: Path, container: Container) -> int:
         _log.error("database_url_missing")
         return 1
 
-    async with container.posts() as repository:
-        removed = await sync_posts(posts, repository)
+    try:
+        async with container.posts() as repository:
+            removed = await sync_posts(posts, repository)
+    except PostsUnavailable:
+        # The transaction didn't commit, so the stored posts are unchanged.
+        _log.exception("posts_unavailable")
+        return 1
 
     _log.info(
         "posts_synced",

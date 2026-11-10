@@ -1,5 +1,6 @@
 """Smoke tests through the real app: middleware, static mount, routers, error handlers."""
 
+import html
 import json
 import re
 
@@ -130,7 +131,7 @@ def test_unknown_path_renders_noindex_404_page(client: TestClient) -> None:
     response = client.get("/does-not-exist")
 
     assert response.status_code == 404
-    assert "That page doesn't exist." in response.text
+    assert "That page doesn't exist." in html.unescape(response.text)
     assert f"<title>Page not found · {settings.site_name}</title>" in response.text
     assert '<meta name="robots" content="noindex" />' in response.text
     assert 'rel="canonical"' not in response.text
