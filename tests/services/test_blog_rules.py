@@ -94,6 +94,16 @@ def test_non_string_front_matter_keys_are_reported_not_crashed_on() -> None:
     assert {"2026", "auhtor"} <= set(e.value.errors)
 
 
+@pytest.mark.parametrize("value", [2026, 1.5, True, ["2026-11-07"]])
+def test_dates_must_be_dates_not_numbers_or_lists(value: object) -> None:
+    # Pydantic alone would read 2026 as a Unix timestamp (1970-01-01T00:33:46).
+    assert "date like" in _errors(published=value)["published"]
+
+
+def test_long_fields_report_their_limit() -> None:
+    assert _errors(title="x" * 501)["title"] == "At most 500 characters."
+
+
 def test_tags_must_be_hyphenated_words() -> None:
     assert "data engineering" in _errors(tags=["data engineering"])["tags"]
 
